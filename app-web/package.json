@@ -1,0 +1,13 @@
+{
+  "name": "@joeee/app-web",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "description": "Thin reference UI (vanilla TS, no framework) demonstrating the headless engine over an agnostic controller. Swap for React/Solid/Svelte without touching the engine.",
+  "dependencies": {
+    "@joeee/cytometry-core": "workspace:*",
+    "@joeee/cytometry-gpu": "workspace:*",
+    "@joeee/engine-controller": "workspace:*",
+    "@joeee/fcs": "workspace:*"
+  }
+}

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>joeee — flow cytometry</title>
+    <style>
+      :root { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+      body { margin: 0; display: grid; grid-template-columns: 1fr 280px; height: 100vh; background: #f5f5f7; color: #1d1d1f; }
+      #stage { display: flex; align-items: center; justify-content: center; }
+      #plot { background: #fff; border: 1px solid #d8d8dc; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+      aside { background: #ececef; border-left: 1px solid #d8d8dc; padding: 16px; overflow: auto; font-size: 13px; }
+      h1 { font-size: 15px; margin: 0 0 12px; }
+      .panel-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: #6e6e73; margin: 16px 0 6px; }
+      pre { background: #fff; border: 1px solid #e5e5e8; border-radius: 6px; padding: 8px; font-size: 11px; overflow: auto; }
+      button { font: inherit; padding: 6px 10px; border-radius: 6px; border: 1px solid #d8d8dc; background: #fff; cursor: pointer; }
+      .warn { color: #b25000; font-size: 11px; }
+    </style>
+  </head>
+  <body>
+    <main id="stage"><canvas id="plot" width="560" height="560"></canvas></main>
+    <aside>
+      <h1>joeee</h1>
+      <div id="backend" class="warn"></div>
+      <div class="panel-title">Sample</div>
+      <div id="sample">loading…</div>
+      <div class="panel-title">Gates</div>
+      <div id="gates">—</div>
+      <button id="add-gate">+ Rectangle gate (upper-right)</button>
+      <div class="panel-title">Stats</div>
+      <pre id="stats">—</pre>
+    </aside>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>

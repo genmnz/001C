@@ -1,0 +1,18 @@
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+
+# Rust / wasm-pack
+packages/cytometry-wasm/target/
+packages/cytometry-wasm/pkg/
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.log
+
+# Local data — never commit real patient FCS files
+*.fcs
+!packages/fcs/test/fixtures/*.fcs

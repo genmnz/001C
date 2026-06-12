@@ -1,0 +1,12 @@
+{
+  "name": "@joeee/fcs",
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Defensive, streaming-friendly FCS 2.0/3.0/3.1 parser. Pure TypeScript, zero runtime dependencies. Emits column-major Float32 data ready to wrap in an EventMatrix.",
+  "module": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "sideEffects": false
+}

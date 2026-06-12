@@ -1,0 +1,20 @@
+/**
+ * @joeee/cytometry-core — the headless, UI-agnostic flow cytometry engine.
+ *
+ * No DOM, no canvas, no framework imports anywhere in this package: every export
+ * is unit-testable under `bun test` in Node/Bun. The "agnostic UI" boundary in
+ * joeee is downstream of here — UIs talk to @joeee/engine-controller, which
+ * orchestrates this engine in a Worker.
+ */
+export { EventMatrix } from "./matrix.ts";
+export type { ChannelMeta } from "./matrix.ts";
+export { Population } from "./population.ts";
+
+export * from "./transforms/index.ts";
+// Gate classes (RectangleGate, PolygonGate, ...) and evaluate1D/2D are top-level;
+// the boolean operators stay under a `boolean` sub-namespace to avoid polluting
+// the root with and/or/not.
+export * from "./gating/index.ts";
+export * as stats from "./stats/index.ts";
+export * as compensation from "./compensation/index.ts";
+export * as density from "./density/index.ts";

@@ -1,0 +1,171 @@
+import type { ChannelMeta, density } from "@joeee/cytometry-core";
+import type { EngineApi } from "./backend.ts";
+import { Store } from "./store.ts";
+import type {
+  GateNode,
+  GateSpec,
+  SampleInfo,
+  TransformSpec,
+  Viewport,
+  WorkspaceState,
+} from "./protocol.ts";
+
+function initialState(): WorkspaceState {
+  return {
+    samples: {},
+    activeSampleId: null,
+    axes: { x: "", y: "" },
+    transform: { kind: "logicle" },
+    gates: [],
+    stats: {},
+    status: "idle",
+  };
+}
+
+let gateCounter = 0;
+
+/**
+ * The single object a UI interacts with. Commands go in (loadSample, setAxes,
+ * addGate, ...); the UI reads `controller.store` and re-renders on change.
+ *
+ * Density/bin results are RETURNED to the caller (the renderer), never stored in
+ * view state — they are render payloads, not UI state. This keeps the same
+ * "big data stays out of the framework" discipline even for derived data.
+ */
+export class EngineController {
+  readonly store = new Store<WorkspaceState>(initialState());
+
+  constructor(private readonly api: EngineApi) {}
+
+  async loadSample(
+    name: string,
+    buffer: ArrayBuffer | Uint8Array,
+  ): Promise<SampleInfo> {
+    this.store.set({ status: "loading" });
+    const info = await this.api.loadFcs(name, buffer);
+    this.adoptSample(info);
+    return info;
+  }
+
+  async addSampleFromColumns(
+    name: string,
+    channels: ChannelMeta[],
+    columns: ArrayLike<number>[],
+  ): Promise<SampleInfo> {
+    this.store.set({ status: "loading" });
+    const info = await this.api.addColumns(name, channels, columns);
+    this.adoptSample(info);
+    return info;
+  }
+
+  private adoptSample(info: SampleInfo): void {
+    this.store.set((s) => {
+      const firstTwo = info.channels.slice(0, 2).map((c) => c.name);
+      const axes =
+        s.axes.x === "" && firstTwo.length === 2
+          ? { x: firstTwo[0], y: firstTwo[1] }
+          : s.axes;
+      return {
+        samples: { ...s.samples, [info.id]: info },
+        activeSampleId: info.id,
+        axes,
+        status: "idle",
+      };
+    });
+  }
+
+  setAxes(x: string, y: string): void {
+    this.store.set({ axes: { x, y } });
+  }
+
+  setTransform(transform: TransformSpec): void {
+    this.store.set({ transform });
+  }
+
+  /** Compute the 2D density histogram for the current axes/viewport — for the renderer. */
+  async density(
+    viewport: Viewport,
+    binsX = 512,
+    binsY = 512,
+    parentPopId?: string,
+  ): Promise<density.Bins2D> {
+    const { activeSampleId, axes, transform } = this.store.get();
+    if (!activeSampleId) throw new Error("no active sample");
+    return this.api.bin2d({
+      sampleId: activeSampleId,
+      xChannel: axes.x,
+      yChannel: axes.y,
+      transform,
+      viewport,
+      binsX,
+      binsY,
+      parentPopId,
+    });
+  }
+
+  /** Create a gate, evaluate it in the engine, and record it in the gate tree. */
+  async addGate(
+    spec: GateSpec,
+    opts: { name?: string; parentId?: string | null; color?: string } = {},
+  ): Promise<GateNode> {
+    this.store.set({ status: "computing" });
+    const { activeSampleId, transform, gates } = this.store.get();
+    if (!activeSampleId) throw new Error("no active sample");
+    const parentId = opts.parentId ?? null;
+    const parentPopId = parentId
+      ? gates.find((g) => g.id === parentId)?.populationId
+      : undefined;
+    const { populationId, count } = await this.api.evaluateGate({
+      sampleId: activeSampleId,
+      gate: spec,
+      transform,
+      parentPopId,
+    });
+    const node: GateNode = {
+      id: `gate_${++gateCounter}`,
+      name: opts.name ?? `Gate ${gateCounter}`,
+      spec,
+      parentId,
+      populationId,
+      count,
+      color: opts.color,
+    };
+    this.store.set((s) => ({ gates: [...s.gates, node], status: "idle" }));
+    return node;
+  }
+
+  /** Recompute stats for a gate's population on a channel and cache in view state. */
+  async refreshStats(
+    gateId: string,
+    channel: string,
+    transform?: TransformSpec,
+  ): Promise<void> {
+    const { activeSampleId, gates } = this.store.get();
+    if (!activeSampleId) throw new Error("no active sample");
+    const node = gates.find((g) => g.id === gateId);
+    if (!node) throw new Error(`unknown gate ${gateId}`);
+    const r = await this.api.stats({
+      sampleId: activeSampleId,
+      populationId: node.populationId,
+      channel,
+      transform,
+      parentPopId: node.parentId
+        ? gates.find((g) => g.id === node.parentId)?.populationId
+        : undefined,
+    });
+    this.store.set((s) => ({
+      stats: {
+        ...s.stats,
+        [`${node.populationId}:${channel}`]: {
+          count: r.count,
+          median: r.median,
+          mean: r.mean,
+          geometricMean: r.geometricMean,
+          cv: r.cv,
+          ofParent: r.ofParent,
+          ofTotal: r.ofTotal,
+        },
+      },
+    }));
+  }
+}

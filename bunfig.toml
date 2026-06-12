@@ -1,0 +1,6 @@
+# Bun configuration for the joeee monorepo.
+# Tests run offline: the testable packages (fcs, cytometry-core, engine-controller)
+# intentionally have ZERO external runtime dependencies so `bun test` needs no network.
+[test]
+# Coverage is opt-in via `bun test --coverage`.
+root = "."

@@ -1,0 +1,10 @@
+{
+  "name": "@joeee/server",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "description": "Tiny static file server that sets COOP/COEP so the app is cross-origin isolated (required for SharedArrayBuffer + threaded WASM).",
+  "scripts": {
+    "start": "bun run serve.ts"
+  }
+}

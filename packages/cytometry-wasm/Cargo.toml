@@ -1,0 +1,15 @@
+[package]
+name = "joeee-cytometry-wasm"
+version = "0.0.0"
+edition = "2021"
+description = "Rust->WASM hot kernels mirroring @joeee/cytometry-core: logicle transform, point-in-polygon gating, compensation. Dependency-free; exposes a raw C ABI so JS calls it directly over wasm linear memory (no wasm-bindgen)."
+license = "MIT"
+
+# cdylib -> the .wasm artifact; rlib -> `cargo test` and reuse as a normal crate.
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
