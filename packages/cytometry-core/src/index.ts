@@ -18,6 +18,10 @@ export * from "./gating/index.ts";
 export * as stats from "./stats/index.ts";
 export * as compensation from "./compensation/index.ts";
 export * as density from "./density/index.ts";
+export * as reduce from "./reduce/index.ts";
+export * as cluster from "./cluster/index.ts";
+export * as autogate from "./autogate/index.ts";
+export * as cleaning from "./cleaning/index.ts";
 export {
   defaultKernels,
   loadWasmKernels,

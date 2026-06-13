@@ -1,75 +1,202 @@
-# Roadmap
+# joeee — master roadmap
 
-The original plan sequenced the build as Day 0 → Day 7. The **sequence is
-right** (it's a clean dependency order); the **units are not** — each "day" is
-really a milestone that can take days to a week once you account for golden-value
-validation and FCS non-conformance. Below is the same order with honest units and
-the current state marked.
+The full feature surface of the "ultimate open-source FlowJo + Cytobank + Omiq +
+CytoExploreR + Spectre + CATALYST + CytoFlow hybrid", ordered by the build
+sequence we agreed:
 
-## Phase 0 — platform de-risk  ·  ~1 week  ·  [partly done]
+> **Engine first** (headless, hybrid TS + Rust/WASM, every feature swappable by
+> OSS-ported logic) → **WebGPU/rendering** → **visualization** → **UI** →
+> **collaboration** → **enterprise/fancy**. Most important + hardest first;
+> implemented and tested before moving on.
 
-Prove the things that silently sink the timeline.
+**Legend:** `[x]` done & tested · `[~]` partial · `[ ]` todo.
+Engine tags: **(port: <oss>)** = port/borrow the algorithm from that OSS C/R
+reference; **TS** / **RS** = language of record (RS = Rust→WASM hot loop, validated
+to match a TS or oracle reference). Every engine op is an isolated module behind
+an interface, so a port can replace a hand-built version (or vice-versa) without
+touching call sites.
 
-- [x] Monorepo + offline `bun test` + `cargo test`.
-- [x] Tiny server emits `COOP/COEP/CORP` (verified via curl).
-- [x] WGSL + WebGPU density renderer demonstrating the compute→render shared
-      `STORAGE` buffer (browser-run still pending — no GPU in CI).
-- [ ] Boot a real WebGPU device in a target browser; confirm
-      `crossOriginIsolated === true`; render 1M points from a SAB.
-- [ ] `wasm-pack`/`cargo build --target wasm32-unknown-unknown` with `+simd128`
-      and call `logicle_scale_into` from JS over a SAB slice.
+OSS references: flowCore, flowUtils, flowWorkspace, openCyto, CytoML, CATALYST,
+CytoExploreR, CytoFlow, FlowSOM, Spectre.
 
-## Phase 1 — parser → matrix  ·  ~3–5 days  ·  [done (TS), hardening ongoing]
+---
 
-- [x] FCS 3.0/3.1 (+2.0-tolerant) list-mode parse: I/F/D, integer bit-mask,
-      `$BYTEORD`, HEADER/TEXT offset reconciliation, `$SPILLOVER`.
-- [x] Column-major Float32 output → `EventMatrix.fromBuffer` (no transpose).
-- [ ] Golden-file corpus from real public files; ASCII (`$DATATYPE A`) and
-      multi-dataset (`$NEXTDATA`) support; parse straight into a SAB in a Worker.
+## Phase E — Engine (headless) — **IN PROGRESS**
 
-## Phase 2 — transforms + compensation  ·  ~1 week  ·  [done, needs oracle]
+### E1 · FCS I/O  (port: flowCore/flowIO)
+- [x] Read FCS 2.0/3.0/3.1 (`@joeee/fcs`, TS)
+- [x] Parse metadata / channels / markers / `$SPILLOVER` (TS)
+- [x] Integer bit-mask vs `$PnR`, `$BYTEORD`, HEADER/TEXT offset reconciliation (TS)
+- [~] Validate FCS integrity (collects warnings; no strict mode yet)
+- [ ] Write FCS (TS) — round-trip our parser
+- [ ] Stream / lazy-load FCS (TS, parse into a SAB chunk-by-chunk)
+- [ ] Parse acquisition / instrument settings (TS)
+- [ ] Merge / split / concatenate FCS (TS)
+- [ ] Downsample / upsample events (TS; reservoir + density-preserving)
+- [ ] Export gated / transformed populations to FCS/CSV (TS)
+- [ ] Convert FCS versions (TS)
+- [ ] ASCII (`$DATATYPE A`) + multi-dataset (`$NEXTDATA`) (TS)
 
-- [x] logicle/biexp (TS + Rust mirror), asinh, log, linear; round-trip +
-      monotonicity + analytic anchors.
-- [x] Spillover inversion (f64) + apply.
-- [ ] **flowCore/FlowKit golden-value validation** of logicle across a parameter
-      grid (the one remaining correctness gate). Per-channel transform overrides.
+### E2 · Data cleaning / QC  (port: openCyto, PeacoQC, flowAI)
+- [x] Range/threshold cleaning via gates (`gating`, TS)
+- [ ] Doublet removal (FSC-A/H or SSC-A/H ratio gate) (TS) ← next
+- [ ] Debris removal (low FSC/SSC) (TS) ← next
+- [ ] Saturated / edge event removal (TS) ← next
+- [ ] Acquisition-time filtering / unstable-period removal (flowAI-style) (TS)
+- [ ] Dead-cell removal (viability channel) (TS)
+- [ ] Outlier / anomaly detection (TS, then RS for kNN)
+- [ ] QC scoring; instrument-drift detection (TS)
 
-## Phase 3 — render real data + density  ·  ~1–2 weeks  ·  [scaffolded]
+### E3 · Compensation & spectral  (port: flowCore, CATALYST, AutoSpill)
+- [x] Apply compensation `inv(Sᵀ)·obs` (oracle-validated) (`compensation`, TS)
+- [x] Matrix inversion f64 (TS + **RS** mirror)
+- [ ] Calculate spillover from single-stain controls (TS)
+- [ ] Edit / validate spillover matrix (TS)
+- [ ] Auto-compensation (AutoSpill-style least-squares) (TS→RS)
+- [ ] Spectral unmixing (OLS/WLS/NNLS) (port: CATALYST/flowUtils `compensate_spectral_ols`) (TS→RS)
+- [ ] Autofluorescence extraction / subtraction (TS)
+- [ ] Detector / PMT normalization (TS)
 
-- [x] CPU 2D/1D histogram (source of truth); pure `densityToImage`; colormaps.
-- [x] WebGPU scatter (instanced) + GPU histogram + colormap render (WGSL).
-- [x] Logicle-aware axis ticks; **pan / wheel-zoom-about-cursor** (pure,
-      fuzz-tested) wired into the React shell.
-- [ ] LOD downsampling for zoomed-out views; a `max`-bin reduction pass on GPU;
-      on-device pixel-parity test GPU vs CPU.
+### E4 · Transformations  (port: flowUtils/flowCore, Moore–Parks)
+- [x] Logicle (oracle-validated ~5e-17, TS + **RS**)
+- [x] Hyperlog (oracle-validated ~3e-17, TS)
+- [x] Arcsinh (+ cofactor), Log, Linear (TS)
+- [x] Inverse transforms (`unscale`) + channel-specific application (TS)
+- [~] Biexponential (logicle covers it; add FlowJo's distinct parameterization)
+- [ ] Quantile transform (TS)
+- [ ] Custom / user-defined transform (TS)
+- [ ] Transform parameter optimization (auto-W from data) (TS)
 
-## Phase 4 — gating  ·  ~1 week  ·  [done (engine), UX pending]
+### E5 · Manual gating  (port: flowCore/flowWorkspace, GatingML 2.0)
+- [x] Rectangle, Range, Ellipse, Polygon, Quadrant (oracle-validated) (TS + **RS** poly)
+- [x] Boolean (AND/OR/NOT/XOR/diff) as bitset ops (TS)
+- [x] Population hierarchy / parent–child restriction (TS, controller)
+- [ ] Gate templates (save/apply geometry across samples) (TS)
+- [ ] Gate copy / paste / sync across plots (TS, controller)
+- [ ] Gate versioning (TS, with workspace history)
 
-- [x] rectangle/range/ellipse/polygon/quadrant + boolean (bitset); parent
-      restriction; live counts. **All gate geometry oracle-validated vs flowutils.**
-- [x] Interactive **rectangle-gate drawing** + SVG gate overlay in the React
-      shell (drag→GateSpec via fuzz-tested `rectFromDrag`).
-- [ ] Polygon draw (click vertices) + draggable vertex handles
-      (`movePolygonVertex` exists); GPU picking/hover; sub-100 ms drag verified at
-      10M events (move the kernel to WASM SIMD if TS misses it).
+### E6 · Automated gating  (port: openCyto, flowDensity, flowClust)
+- [ ] 1D auto-threshold — Otsu (TS) ← next
+- [ ] 1D density-valley / `mindensity` (KDE local minima) (TS) ← next
+- [ ] Peak-detection gating (TS) ← next
+- [ ] Quantile / tail gating (TS) ← next
+- [ ] Singlet gate (FSC-A vs FSC-H diagonal) (TS) ← next
+- [ ] flowDensity-style 2D auto-gating (TS)
+- [ ] Mixture-model / Gaussian gating (flowClust, EM) (TS→RS)
+- [ ] Rule-based / template-driven hierarchical gating (openCyto csv templates) (TS)
+- [ ] Cluster-derived gating; reference gating; batch gating (TS)
+- [ ] Neural / AI-assisted gating (defer to ML phase)
 
-## Phase 5 — stats + gate tree  ·  ~3–5 days  ·  [done (engine), UI pending]
+### E7 · Population management
+- [x] Population tree; union/intersection/subtraction (boolean) (TS)
+- [~] Rename / annotate / label (controller node fields)
+- [ ] Merge / split populations as first-class ops (TS) ← next
+- [ ] Population matching across samples (TS)
+- [ ] Population tracking (longitudinal) (TS)
 
-- [x] count/%parent/%total/mean/median(MFI)/geomean/CV/MAD/percentile.
-- [ ] Gate-tree UI, population manager, exportable stats tables.
+### E8 · Statistics  (port: flowCore, CytoExploreR)
+- [x] Counts, % parent, % total, mean, median (MFI), geomean, CV, MAD, percentile, min/max, stdev (TS)
+- [ ] Fold change (TS) ← next
+- [ ] Marker positivity (% above threshold) (TS) ← next
+- [ ] Marker co-expression (TS) ← next
+- [ ] Diversity scores (Shannon/Simpson) (TS) ← next
+- [ ] Absolute counts (with bead/volume) (TS)
+- [ ] Enrichment scores (TS)
 
-## Phase 6 — hardening  ·  ongoing
+### E9 · Dimensionality reduction  (port: scikit/Rtsne/uwot/PHATE)
+- [ ] PCA (covariance + Jacobi eigen, exact) (TS) ← next
+- [ ] MDS / classical (TS)
+- [ ] t-SNE (Barnes–Hut) (TS→RS)
+- [ ] UMAP (port: uwot) (TS→RS)
+- [ ] PaCMAP / TriMap / PHATE / Diffusion Maps / Isomap / ICA / NMF (RS)
+- [ ] Autoencoders / VAE (defer; onnxruntime-web)
 
-- [ ] 30M-event stress + memory profiling; tab-OOM mitigation; feature-detect
-      fallback messaging; the full golden-file suite.
+### E10 · Clustering  (port: FlowSOM, PhenoGraph, scikit)
+- [ ] K-means (Lloyd, seeded) (TS + **RS** assign step) ← next
+- [ ] FlowSOM (SOM grid + metaclustering on k-means) (TS→RS)
+- [ ] PhenoGraph (kNN graph + Louvain/Leiden) (TS→RS)
+- [ ] Hierarchical / DBSCAN / HDBSCAN / GMM / spectral / consensus (TS→RS)
 
-## Explicitly deferred (post-MVP)
+### E11 · Batch effects / normalization  (port: CytoNorm, CATALYST)
+- [ ] Quantile normalization (TS) ← after DR/cluster
+- [ ] CytoNorm (per-cluster quantile alignment) (TS)
+- [ ] Reference / control-based normalization; drift correction (TS)
 
-UMAP · t-SNE · PCA · FlowSOM · PhenoGraph · Leiden · Louvain · k-means · HDBSCAN ·
-FlowJo `.wsp` import · spectral/OLS compensation · DuckDB-WASM (cohort stats) ·
-collaboration · reporting/figure builder · ML · pipelines · R/Python consoles.
+### E12 · Differential analysis  (port: diffcyt, CATALYST)
+- [ ] Differential abundance (per-population freq across groups + test) (TS) ← next
+- [ ] Differential expression / marker intensity (TS)
+- [ ] Between-group / longitudinal / responder analysis (TS)
 
-These are not interactive at 1–10M events and/or not core to "FlowJo Lite." When
-they come back, most are Rust→WASM (`linfa`) or server-side, behind the same
-controller boundary.
+### E13 · Multi-sample
+- [ ] Sample groups / cohort metadata model (TS)
+- [ ] Population frequency matrices; sample similarity; consensus populations (TS)
+
+### E14 · Workspace serialization & history  (port: flowWorkspace, CytoML)
+- [ ] Workspace document schema (gates + transforms + metadata + populations) → JSON (TS) ← next
+- [ ] Save / load project (TS) ← next
+- [ ] Undo / redo; analysis history; audit trail (TS)
+- [ ] FlowJo `.wsp` import (CytoML) ; Cytobank / CytoML import (TS)
+- [ ] Reproducibility manifest (params + versions) (TS)
+
+### E15 · Machine learning  (onnxruntime-web / linfa-RS)
+- [ ] Cell/population classification (RandomForest/XGBoost/SVM) (RS: linfa, or onnx)
+- [ ] Feature importance / explainable AI (TS)
+- [ ] Population/disease prediction; biomarker discovery (TS)
+
+### E16 · Modality specifics
+- [ ] CyTOF: bead normalization, debarcoding, signal-drift correction (port: CATALYST) (TS→RS)
+- [ ] Spectral flow: signature fitting, residual analysis, reference library (TS→RS)
+- [ ] Spatial: coordinates, neighborhood, cell–cell interaction, spatial clustering (TS→RS)
+
+---
+
+## Phase G — WebGPU / rendering
+- [x] WebGPU device + feature detection; Canvas2D fallback (TS)
+- [x] GPU 2D-histogram density (compute→render shared buffer); colormap CPU+WGSL (WGSL)
+- [x] GPU bin formula validated identical to CPU histogram (TS)
+- [x] Pan / wheel-zoom-about-cursor (pure, fuzz-tested) (TS)
+- [ ] On-device device boot + 1M-point render from SAB (manual smoke page exists)
+- [ ] GPU `max`-bin reduction pass (remove the CPU max round-trip)
+- [ ] Instanced scatter wired to real data + GPU picking/hover
+- [ ] LOD downsampling for zoomed-out views
+- [ ] WebGL2 fallback backend (only if telemetry shows non-WebGPU traffic)
+
+## Phase V — Visualization (plot types; see docs/PLOTS.md)
+- [x] Density / pseudocolor scatter (engine bins → renderer)
+- [~] Histogram (1D), gate overlay, quadrant (data path exists; UI partial)
+- [ ] Contour (d3-contour over bins), hexbin, backgated scatter
+- [ ] Heatmaps (marker/cluster/correlation), violin/box/swarm/ridge
+- [ ] Embedding scatter (t-SNE/UMAP colored by cluster/marker)
+- [ ] Volcano, bar/pie, parallel-coords, Sankey, treemap
+
+## Phase U — UI / app
+- [x] Agnostic controller + observable store (TS)
+- [x] React shell: pan/zoom, rect-gate draw, gate tree, stats, compensate (TS)
+- [ ] Polygon draw (click vertices) + draggable vertex handles (`movePolygonVertex` exists)
+- [ ] Workspace modes (Gating/QC/Exploration/Clustering/Stats/Figure/Report)
+- [ ] Dockable panels, command palette, keyboard shortcuts
+- [ ] Metadata editor, panel/marker manager, pipeline builder
+
+## Phase C — Collaboration
+- [ ] Shared projects, comments, annotations
+- [ ] Review/approval workflows, version control, permissions, publishing
+- [ ] Real-time co-editing (CRDT over the workspace document)
+
+## Phase X — Enterprise / fancy
+- [ ] Billions of cells (out-of-core / chunked), distributed compute
+- [ ] Cloud execution, scheduled analysis, workflow pipelines, API access
+- [ ] LLM assistant (explain gates/clusters, suggest gating, write methods)
+
+---
+
+## Working notes
+- **Validation:** every ported algorithm gets an external-oracle test where one
+  exists (flowUtils/FlowKit/scikit golden values), else a property/fuzz test +
+  an independent in-repo reference. See `docs/VALIDATION.md`.
+- **Hybrid rule:** build in TS first (correct + tested); promote a hot loop to
+  Rust→WASM (`packages/cytometry-wasm`) when profiling demands it, validated to
+  match the TS bit-for-bit. The kernel seam (`Kernels`) makes the swap invisible
+  to callers.
+- **Swappable rule:** each feature is a module behind a small interface; "port
+  from OSS" and "hand-built" are interchangeable implementations of that
+  interface.

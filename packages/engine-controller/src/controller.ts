@@ -1,6 +1,11 @@
 import type { ChannelMeta, density } from "@joeee/cytometry-core";
 import type { EngineApi } from "./backend.ts";
 import { Store } from "./store.ts";
+import {
+  deserializeWorkspace,
+  serializeWorkspace,
+  type WorkspaceDoc,
+} from "./workspace.ts";
 import type {
   GateNode,
   GateSpec,
@@ -187,5 +192,30 @@ export class EngineController {
         },
       },
     }));
+  }
+
+  /** Serialize the analysis (gates, transform, axes, sample metadata) to a doc. */
+  exportWorkspace(): WorkspaceDoc {
+    return serializeWorkspace(this.store.get());
+  }
+
+  /**
+   * Restore an analysis onto the currently-loaded sample: sets axes/transform,
+   * then re-evaluates every gate (parents first) so populations are rebuilt.
+   * The sample(s) must already be loaded (event data is not part of the doc).
+   */
+  async importWorkspace(doc: WorkspaceDoc): Promise<void> {
+    const { axes, transform, gates } = deserializeWorkspace(doc);
+    this.store.set({ axes, transform, gates: [] });
+    const oldToNew = new Map<string, string>();
+    for (const sg of gates) {
+      const parentId = sg.parentId ? (oldToNew.get(sg.parentId) ?? null) : null;
+      const node = await this.addGate(sg.spec, {
+        name: sg.name,
+        parentId,
+        color: sg.color,
+      });
+      oldToNew.set(sg.id, node.id);
+    }
   }
 }

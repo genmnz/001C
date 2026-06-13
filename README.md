@@ -23,6 +23,10 @@ joeee/
 │   │   ├── gating/            rectangle · range · ellipse · polygon · quadrant · boolean
 │   │   ├── stats/             count · MFI/median · percentile · CV · MAD · geomean · freq
 │   │   ├── density/           CPU 2D/1D histogram (source of truth for plots)
+│   │   ├── reduce/            PCA (Jacobi eigen) — DR foundation
+│   │   ├── cluster/           k-means (++ seed) — FlowSOM foundation
+│   │   ├── autogate/          Otsu + density-valley auto-thresholds (openCyto/flowDensity)
+│   │   ├── cleaning/          singlet/debris/saturation/time QC gates
 │   │   ├── kernels/           Kernels seam: TsKernels (default) ⇄ WasmKernels (SIMD)
 │   │   ├── matrix.ts          EventMatrix — columnar, SharedArrayBuffer-backed
 │   │   └── population.ts      Population — packed bitset (the core primitive)
@@ -71,7 +75,11 @@ cd app-react && bun run build        # -> app-react/dist
 
 ## Status
 
-- **Tested headlessly (CI-safe):** ~485 TS tests (≈45k assertions) + Rust tests.
+- **Tested headlessly (CI-safe):** ~517 TS tests (≈68k assertions) + 10 Rust tests.
+  Engine now also covers PCA, k-means (+ a Rust assign kernel), Otsu/density-valley
+  auto-thresholds, QC/cleaning gates, comparative & differential stats
+  (fold-change, positivity, co-expression, diversity, Mann–Whitney), and workspace
+  save/load. The full feature plan is in `docs/ROADMAP.md`.
   Every core operation is **validated against the flowutils external oracle**:
   logicle (~5e-17) and hyperlog (~3e-17) transforms, compensation
   (`solve(Sᵀ,·)`, transpose bug caught), and polygon/ellipse gating (0 mismatches

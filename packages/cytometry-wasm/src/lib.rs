@@ -16,6 +16,7 @@
 //! ceiling (Memory64 is still absent from Safari in 2026). Instead, keep the
 //! matrix in a JS SharedArrayBuffer and pass slice pointers into these kernels.
 
+pub mod cluster;
 pub mod compensate;
 pub mod gate;
 pub mod logicle;
@@ -70,6 +71,25 @@ pub unsafe extern "C" fn polygon_mask(
 #[inline]
 fn point_in(px: &[f64], py: &[f64], x: f64, y: f64) -> u8 {
     gate::point_in_polygon(px, py, x, y) as u8
+}
+
+/// K-means assignment over wasm linear memory (row-major points/centroids).
+///
+/// # Safety
+/// All pointers must address the stated number of valid elements.
+#[no_mangle]
+pub unsafe extern "C" fn kmeans_assign(
+    points: *const f32,
+    centroids: *const f32,
+    n: usize,
+    d: usize,
+    k: usize,
+    out: *mut i32,
+) {
+    let pts = slice::from_raw_parts(points, n * d);
+    let cts = slice::from_raw_parts(centroids, k * d);
+    let o = slice::from_raw_parts_mut(out, n);
+    cluster::assign_nearest(pts, cts, n, d, k, o);
 }
 
 #[cfg(test)]

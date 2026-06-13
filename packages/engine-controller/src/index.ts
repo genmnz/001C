@@ -21,3 +21,9 @@ export {
   type EngineApi,
 } from "./backend.ts";
 export * from "./protocol.ts";
+export {
+  serializeWorkspace,
+  deserializeWorkspace,
+  topoSortGates,
+} from "./workspace.ts";
+export type { WorkspaceDoc, SerializedGate } from "./workspace.ts";
