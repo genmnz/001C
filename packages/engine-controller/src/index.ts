@@ -11,6 +11,10 @@ export { EngineController } from "./controller.ts";
 export { Store } from "./store.ts";
 export type { Updater } from "./store.ts";
 export { Engine } from "./engine.ts";
+// Pure presentational helper: build a Transform from a spec (e.g. for axis ticks)
+// without the UI importing the engine core directly.
+export { makeTransform as buildTransform } from "./factories.ts";
+export type { Transform } from "@joeee/cytometry-core";
 export {
   createInProcessBackend,
   createWorkerBackend,

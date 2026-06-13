@@ -1,4 +1,5 @@
 import type { GpuHandles } from "./device.ts";
+import { packComputeParams, packRenderParams } from "./layout.ts";
 import histogramWGSL from "./shaders/histogram.wgsl?raw";
 import densityRenderWGSL from "./shaders/density_render.wgsl?raw";
 
@@ -99,17 +100,10 @@ export class WebGPUDensityRenderer {
     if (!this.eventsBuffer || !this.binsBuffer) return;
     const dev = this.device;
 
-    const params = new ArrayBuffer(32);
-    new Uint32Array(params, 0, 4).set([this.binsX, this.binsY, this.eventCount, 0]);
-    new Float32Array(params, 16, 4).set([
-      viewport.xMin,
-      viewport.xMax,
-      viewport.yMin,
-      viewport.yMax,
-    ]);
+    const params = packComputeParams(this.binsX, this.binsY, this.eventCount, viewport);
     dev.queue.writeBuffer(this.paramsBuffer, 0, params);
 
-    const rparams = new Uint32Array([this.binsX, this.binsY, Math.max(1, maxCount), 0]);
+    const rparams = packRenderParams(this.binsX, this.binsY, maxCount);
     dev.queue.writeBuffer(this.renderParamsBuffer, 0, rparams);
 
     const computeBind = (pipeline: any) =>

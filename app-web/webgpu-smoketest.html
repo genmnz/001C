@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>joeee — WebGPU smoke test</title>
+    <style>
+      body { font-family: -apple-system, system-ui, sans-serif; margin: 24px; color: #1d1d1f; }
+      #log { font-family: "SF Mono", Menlo, monospace; font-size: 12px; white-space: pre-wrap; }
+      .ok { color: #2e7d32; } .bad { color: #c62828; }
+      canvas { border: 1px solid #d8d8dc; margin-top: 12px; image-rendering: pixelated; }
+    </style>
+  </head>
+  <body>
+    <h1>WebGPU density smoke test</h1>
+    <p>Run via the joeee server (so COOP/COEP are set):
+      <code>JOEEE_ROOT=app-web bunx vite</code> or build + <code>bun run serve</code>.</p>
+    <div id="log">running…</div>
+    <canvas id="c" width="512" height="512"></canvas>
+    <script type="module" src="./src/webgpu-smoketest.ts"></script>
+  </body>
+</html>

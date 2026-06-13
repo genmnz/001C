@@ -7,7 +7,8 @@
   "workspaces": [
     "packages/*",
     "server",
-    "app-web"
+    "app-web",
+    "app-react"
   ],
   "scripts": {
     "test": "bun test",

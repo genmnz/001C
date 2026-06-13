@@ -25,6 +25,7 @@
     "**/pkg",
     "**/target",
     "**/dist",
-    "app-web/vite.config.ts"
+    "app-web/vite.config.ts",
+    "app-react"
   ]
 }

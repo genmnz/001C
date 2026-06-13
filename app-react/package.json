@@ -1,0 +1,25 @@
+{
+  "name": "@joeee/app-react",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "description": "Lightweight Bun + Vite + React shell over the agnostic controller. The engine and event data live behind the controller; React only holds view state via useSyncExternalStore.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@joeee/cytometry-gpu": "workspace:*",
+    "@joeee/engine-controller": "workspace:*",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^5.4.11"
+  }
+}

@@ -13,6 +13,8 @@ export type {
 export { sampleColormap, colormapNames } from "./colormap.ts";
 export { densityToImage } from "./density-image.ts";
 export type { DensityImage, DensityImageOptions } from "./density-image.ts";
+export { axisTicks } from "./axis/ticks.ts";
+export type { AxisOptions, Tick } from "./axis/ticks.ts";
 export {
   detectWebGPU,
   initWebGPU,
