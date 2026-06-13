@@ -16,13 +16,19 @@ jobs:
         with:
           bun-version: "1.3.11"
 
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
       - name: Install workspace
         run: bun install
 
       - name: Typecheck
         run: bun run typecheck
 
-      - name: Test (headless engine, parser, controller)
+      - name: Build WASM kernels (so the wasm-glue tests run, not skip)
+        run: bun run build:wasm
+
+      - name: Test (engine, parser, controller, golden, wasm glue)
         run: bun test
 
   rust:

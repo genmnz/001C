@@ -1,0 +1,4 @@
+# External oracle for logicle golden-value generation.
+# flowutils is the FlowKit logicle C extension (Moore & Parks 2012 / Stanford).
+flowutils==1.2.2
+numpy>=1.24

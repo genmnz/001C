@@ -18,3 +18,10 @@ export * from "./gating/index.ts";
 export * as stats from "./stats/index.ts";
 export * as compensation from "./compensation/index.ts";
 export * as density from "./density/index.ts";
+export {
+  defaultKernels,
+  loadWasmKernels,
+  TsKernels,
+  WasmKernels,
+} from "./kernels/index.ts";
+export type { Kernels } from "./kernels/index.ts";

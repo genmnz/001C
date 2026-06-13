@@ -1,11 +1,13 @@
 import {
   EventMatrix,
   Population,
+  defaultKernels,
   density,
   evaluate1D,
   evaluate2D,
   stats as coreStats,
   type ChannelMeta,
+  type Kernels,
 } from "@joeee/cytometry-core";
 import { parseFcs } from "@joeee/fcs";
 import {
@@ -37,6 +39,12 @@ export class Engine {
   private populations = new Map<string, Population>();
   private displayCache = new Map<string, Float32Array>();
   private popCounter = 0;
+
+  /**
+   * @param kernels hot-loop backend. Defaults to pure TS; pass WasmKernels
+   * (built from joeee-cytometry-wasm) for the SIMD path — nothing else changes.
+   */
+  constructor(private readonly kernels: Kernels = defaultKernels()) {}
 
   addColumns(
     name: string,
@@ -84,9 +92,20 @@ export class Engine {
     const cached = this.displayCache.get(key);
     if (cached) return cached;
     const raw = this.must(sampleId).columnByName(channel);
-    const t = makeTransform(transform);
-    const col = new Float32Array(raw.length);
-    for (let i = 0; i < raw.length; i++) col[i] = t.scale(raw[i]);
+    const col = new Float32Array(raw); // copy raw values, then transform in place
+    if (transform.kind === "logicle") {
+      // Hot path: routed through the kernel backend (TS or WASM SIMD).
+      this.kernels.logicleScaleInto(
+        col,
+        transform.T ?? 262144,
+        transform.W ?? 0.5,
+        transform.M ?? 4.5,
+        transform.A ?? 0,
+      );
+    } else {
+      const t = makeTransform(transform);
+      for (let i = 0; i < col.length; i++) col[i] = t.scale(col[i]);
+    }
     this.displayCache.set(key, col);
     return col;
   }
@@ -116,6 +135,17 @@ export class Engine {
     if (isGate1D(req.gate)) {
       const xs = this.displayColumn(req.sampleId, req.gate.channel, req.transform);
       pop = evaluate1D(makeGate1D(req.gate), xs, parent);
+    } else if (req.gate.kind === "polygon") {
+      // Hot path: point-in-polygon via the kernel backend (TS or WASM SIMD).
+      const g = req.gate;
+      const xs = this.displayColumn(req.sampleId, g.xChannel, req.transform);
+      const ys = this.displayColumn(req.sampleId, g.yChannel, req.transform);
+      const polyX = Float64Array.from(g.vertices, (v) => v[0]);
+      const polyY = Float64Array.from(g.vertices, (v) => v[1]);
+      const mask = this.kernels.polygonMask(xs, ys, polyX, polyY);
+      pop = new Population(xs.length);
+      if (parent) parent.forEach((i) => mask[i] && pop.set(i));
+      else for (let i = 0; i < mask.length; i++) if (mask[i]) pop.set(i);
     } else {
       const xs = this.displayColumn(req.sampleId, req.gate.xChannel, req.transform);
       const ys = this.displayColumn(req.sampleId, req.gate.yChannel, req.transform);

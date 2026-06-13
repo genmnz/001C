@@ -7,6 +7,11 @@ build/
 packages/cytometry-wasm/target/
 packages/cytometry-wasm/pkg/
 
+# Python (golden-value oracle venv)
+.venv-golden/
+__pycache__/
+*.pyc
+
 # Editor / OS
 .DS_Store
 .idea/
