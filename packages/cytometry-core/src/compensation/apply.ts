@@ -2,10 +2,11 @@ import { EventMatrix } from "../matrix.ts";
 import { invertSquare } from "./invert.ts";
 
 /**
- * A spillover (compensation) matrix as carried by FCS `$SPILLOVER` / `$COMP`:
- * `S[i][j]` is the fraction of detector j's signal that leaks into detector i's
- * channel. Observed = S * True, so compensation un-mixes via True = S^-1 *
- * Observed, applied per event across the spillover channels.
+ * A spillover (compensation) matrix as carried by FCS `$SPILLOVER` / `$COMP`.
+ * Compensation un-mixes via `compensated = solve(S^T, observed)` per event —
+ * i.e. `inv(S^T) · obs` — matching the flowutils/FlowKit/FlowJo convention (and
+ * validated against the flowutils oracle in compensation.golden.test.ts). Note
+ * the TRANSPOSE: applying `inv(S)` instead is the classic compensation bug.
  */
 export interface SpilloverMatrix {
   /** Channel $PnN names, in matrix order. */
@@ -35,10 +36,10 @@ export function applyCompensation(
   const obs = new Float64Array(n);
   for (let e = 0; e < events; e++) {
     for (let i = 0; i < n; i++) obs[i] = cols[i][e];
+    // compensated = inv(S^T) · obs = inv(S)^T · obs  ->  acc += inv[j][i] * obs[j].
     for (let i = 0; i < n; i++) {
       let acc = 0;
-      const row = i * n;
-      for (let j = 0; j < n; j++) acc += inv[row + j] * obs[j];
+      for (let j = 0; j < n; j++) acc += inv[j * n + i] * obs[j];
       cols[i][e] = acc;
     }
   }

@@ -2,6 +2,7 @@ import {
   AsinhTransform,
   CofactorAsinhTransform,
   EllipseGate,
+  HyperlogTransform,
   LinearTransform,
   LogTransform,
   LogicleTransform,
@@ -18,6 +19,8 @@ export function makeTransform(spec: TransformSpec): Transform {
   switch (spec.kind) {
     case "logicle":
       return new LogicleTransform(spec.T, spec.W, spec.M, spec.A);
+    case "hyperlog":
+      return new HyperlogTransform(spec.T, spec.W, spec.M, spec.A);
     case "asinh":
       return new AsinhTransform(spec.T, spec.M, spec.A);
     case "asinh-cofactor":

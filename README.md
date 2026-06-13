@@ -18,7 +18,7 @@ tested; the rendering and UI layers are real but browser-only (not run in CI).
 joeee/
 ├── packages/
 │   ├── cytometry-core/      @joeee/cytometry-core   headless engine (TS, 0 deps)
-│   │   ├── transforms/        logicle · biexponential · asinh · log · linear
+│   │   ├── transforms/        logicle · hyperlog · asinh · log · linear (all oracle-validated)
 │   │   ├── compensation/      spillover inversion (f64) + apply
 │   │   ├── gating/            rectangle · range · ellipse · polygon · quadrant · boolean
 │   │   ├── stats/             count · MFI/median · percentile · CV · MAD · geomean · freq
@@ -71,12 +71,14 @@ cd app-react && bun run build        # -> app-react/dist
 
 ## Status
 
-- **Tested headlessly (CI-safe):** 80 TS tests + 9 Rust tests. Covers the logicle
-  keystone (round-trip, monotonicity, analytic anchors **and external-oracle
-  validation vs flowutils to ~5e-17**), compensation, every gate type, stats,
-  density binning, the FCS integer bit-mask / endianness / offset-reconciliation
-  gotchas, the full load → density → gate → stats pipeline, the TS⇄WASM kernel
-  parity, and the GPU bin formula vs the CPU histogram.
+- **Tested headlessly (CI-safe):** ~485 TS tests (≈45k assertions) + Rust tests.
+  Every core operation is **validated against the flowutils external oracle**:
+  logicle (~5e-17) and hyperlog (~3e-17) transforms, compensation
+  (`solve(Sᵀ,·)`, transpose bug caught), and polygon/ellipse gating (0 mismatches
+  over ~18k points). Plus heavy property/fuzz suites (transforms over random
+  params, bitset De Morgan laws at 1M bits, stats vs naive, density conservation
+  at 500k events, a 4-level gate hierarchy at 100k events), the FCS gotchas, the
+  TS⇄WASM kernel parity, and the GPU bin formula vs the CPU histogram.
 - **Runnable:** the React shell builds (Vite, 56 kB gzipped) and the WASM kernels
   build to wasm32 with SIMD.
 - **Browser-only (real, not in CI):** WebGPU scatter + GPU 2D-histogram density

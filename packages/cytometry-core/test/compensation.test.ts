@@ -27,10 +27,9 @@ describe("invertSquare", () => {
 });
 
 describe("applyCompensation", () => {
-  test("un-mixes a known 2-channel spillover", () => {
-    // Spillover: detector B leaks 20% into A's channel; A leaks 10% into B.
-    // Observed = S * True. We seed the matrix with OBSERVED values and expect
-    // applyCompensation to recover TRUE.
+  test("un-mixes a known 2-channel spillover (flowutils convention)", () => {
+    // Convention matches flowutils/FlowJo: compensated = inv(S^T) · observed,
+    // so observed = S^T · true. Seed OBSERVED and expect recovery of TRUE.
     const channels = [{ name: "A" }, { name: "B" }];
     const m = EventMatrix.allocate(2, channels);
     const trueA = [100, 0];
@@ -39,12 +38,12 @@ describe("applyCompensation", () => {
       [1.0, 0.2],
       [0.1, 1.0],
     ];
-    // observed_i = sum_j S[i][j] * true_j
+    // observed_i = sum_j S^T[i][j] * true_j = sum_j S[j][i] * true_j
     const colA = m.column(0);
     const colB = m.column(1);
     for (let e = 0; e < 2; e++) {
-      colA[e] = S[0][0] * trueA[e] + S[0][1] * trueB[e];
-      colB[e] = S[1][0] * trueA[e] + S[1][1] * trueB[e];
+      colA[e] = S[0][0] * trueA[e] + S[1][0] * trueB[e];
+      colB[e] = S[0][1] * trueA[e] + S[1][1] * trueB[e];
     }
     applyCompensation(m, {
       channels: ["A", "B"],

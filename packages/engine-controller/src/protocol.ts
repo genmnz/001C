@@ -9,6 +9,7 @@ import type { ChannelMeta } from "@joeee/cytometry-core";
  */
 export type TransformSpec =
   | { kind: "logicle"; T?: number; W?: number; M?: number; A?: number }
+  | { kind: "hyperlog"; T?: number; W?: number; M?: number; A?: number }
   | { kind: "asinh"; T?: number; M?: number; A?: number }
   | { kind: "asinh-cofactor"; cofactor?: number }
   | { kind: "log"; T?: number; M?: number }

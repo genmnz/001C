@@ -68,11 +68,31 @@ extension.
 (`logicle_scale_into`) matches the in-crate `Logicle` struct, and both match the
 flowutils CSV — so the WASM path used at scale is held to the same oracle.
 
+## Now closed (also flowutils-validated)
+
+- **Hyperlog** — matches flowutils to ~3e-17 across 5 parameter cases incl. the
+  reflected negative region (`hyperlog.golden.json`). This pinned down that
+  hyperlog reflects about `x1` like logicle.
+- **Compensation** — matches `flowutils.compensate` (`solve(Sᵀ, observed)`) to
+  `<1e-6` on an asymmetric 3×3 spillover (`compensation.golden.json`). This
+  caught and fixed a transpose bug: applying `inv(S)` instead of `inv(Sᵀ)`.
+- **Gating geometry** — `PolygonGate` and `EllipseGate` match
+  `points_in_polygon` (winding) and `points_in_ellipsoid` (covariance form) with
+  **zero mismatches over ~18k random points** across simple/concave/irregular
+  polygons and rotated ellipses (`gating.golden.json`).
+
+## Heavy / property tests
+
+`test/property.*.test.ts` fuzz the invariants (≈45k assertions total):
+transforms round-trip + monotonic over random valid params; bitset boolean
+algebra vs a `Set` reference incl. De Morgan at 1M bits; `PolygonGate` vs an
+independent convex reference; `channelStats` vs naive; histogram conservation at
+500k events; and a 4-level gate hierarchy at 100k events through the controller.
+
 ## What's still open
 
-- **Compensation** is validated by `A·A⁻¹ = I` and a known 2-channel un-mixing,
-  but not yet against a flowCore/FlowKit spillover fixture on a real FCS file.
-- **Gating counts** are validated against hand-computed membership, not yet
-  against FlowKit gated counts on a reference file.
-- **asinh/hyperlog** could be added to the same oracle harness (flowutils
-  provides both) — the generator is structured to extend.
+- Validation against **whole real FCS files** (FlowJo `.wsp` gated counts) — the
+  per-op oracles above are stronger unit-level checks; an end-to-end fixture is
+  the next rung.
+- **asinh** golden values (flowutils provides `asinh`) — trivial to add; asinh is
+  already self-consistent-tested and closed-form.

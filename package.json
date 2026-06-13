@@ -14,7 +14,7 @@
     "test": "bun test",
     "test:wasm": "cd packages/cytometry-wasm && cargo test",
     "build:wasm": "cd packages/cytometry-wasm && rustup target add wasm32-unknown-unknown && RUSTFLAGS=\"-C target-feature=+simd128\" cargo build --release --target wasm32-unknown-unknown",
-    "golden": "python scripts/golden/gen_logicle_golden.py",
+    "golden": "python scripts/golden/gen_golden.py",
     "serve": "bun run server/serve.ts",
     "typecheck": "tsc -p tsconfig.base.json --noEmit"
   },
