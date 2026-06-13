@@ -23,6 +23,8 @@ export interface SynthInput {
   headerDataOffsetsZero?: boolean;
   /** Override $BEGINDATA/$ENDDATA to mismatch the HEADER (tests reconciliation). */
   textDataOffsetDelta?: number;
+  /** Emit a $SPILLOVER keyword. `channels` are $PnN names; `values` row-major. */
+  spillover?: { channels: string[]; values: number[] };
 }
 
 const FIELD = 12; // fixed width for $BEGINDATA/$ENDDATA so TEXT length is stable
@@ -76,6 +78,13 @@ export function writeFcs(input: SynthInput): Uint8Array {
       pairs.push([`$P${n}N`, c.name]);
       pairs.push([`$P${n}R`, String(c.range)]);
       if (c.label) pairs.push([`$P${n}S`, c.label]);
+    }
+    if (input.spillover) {
+      const { channels: sc, values } = input.spillover;
+      pairs.push([
+        "$SPILLOVER",
+        [sc.length, ...sc, ...values].join(","),
+      ]);
     }
     return (
       delim + pairs.map(([k, v]) => k + delim + v).join(delim) + delim

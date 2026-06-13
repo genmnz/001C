@@ -59,7 +59,16 @@ export function PlotCanvas({ controller }: { controller: EngineController }) {
     return () => {
       cancelled = true;
     };
-  }, [controller, ws.activeSampleId, ws.axes, ws.transform, ws.gates.length, viewport]);
+    // `compensated` is in deps so the plot refreshes after compensation mutates columns.
+  }, [
+    controller,
+    ws.activeSampleId,
+    ws.axes,
+    ws.transform,
+    ws.gates.length,
+    viewport,
+    ws.activeSampleId ? ws.samples[ws.activeSampleId]?.compensated : false,
+  ]);
 
   const local = (e: RMouseEvent): [number, number] => {
     const r = canvasRef.current!.getBoundingClientRect();

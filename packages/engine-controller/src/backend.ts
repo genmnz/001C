@@ -4,6 +4,7 @@ import type {
   Bin2DRequest,
   EvaluateGateRequest,
   SampleInfo,
+  SpilloverSpec,
   StatsRequest,
 } from "./protocol.ts";
 
@@ -25,6 +26,7 @@ export interface EngineApi {
     req: EvaluateGateRequest,
   ): Promise<{ populationId: string; count: number }>;
   stats(req: StatsRequest): Promise<stats.ChannelStats & stats.Frequency>;
+  compensate(sampleId: string, spill?: SpilloverSpec): Promise<void>;
 }
 
 /** Runs the engine synchronously in the current thread. */
@@ -36,6 +38,7 @@ export function createInProcessBackend(engine = new Engine()): EngineApi {
     bin2d: async (req) => engine.bin2d(req),
     evaluateGate: async (req) => engine.evaluateGate(req),
     stats: async (req) => engine.stats(req),
+    compensate: async (sampleId, spill) => engine.compensate(sampleId, spill),
   };
 }
 
@@ -75,5 +78,6 @@ export function createWorkerBackend(worker: Worker): EngineApi {
     bin2d: (req) => call("bin2d", [req]),
     evaluateGate: (req) => call("evaluateGate", [req]),
     stats: (req) => call("stats", [req]),
+    compensate: (sampleId, spill) => call("compensate", [sampleId, spill]),
   };
 }

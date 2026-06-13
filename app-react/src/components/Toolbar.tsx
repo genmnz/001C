@@ -26,6 +26,18 @@ export function Toolbar({ controller }: { controller: EngineController }) {
     await controller.refreshStats(gate.id, "CD3");
   };
 
+  const compensate = async () => {
+    // Demo spillover on the synthetic channels (real samples use FCS $SPILLOVER).
+    try {
+      await controller.compensate({
+        channels: ["FSC-A", "CD3"],
+        values: [1.0, 0.12, 0.05, 1.0],
+      });
+    } catch {
+      /* no active sample yet */
+    }
+  };
+
   return (
     <div
       style={{
@@ -41,6 +53,9 @@ export function Toolbar({ controller }: { controller: EngineController }) {
       <strong style={{ fontSize: 13 }}>joeee</strong>
       <button type="button" onClick={addGate} style={btn}>
         + Polygon gate
+      </button>
+      <button type="button" onClick={compensate} style={btn}>
+        Compensate
       </button>
     </div>
   );

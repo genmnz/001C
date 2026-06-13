@@ -5,6 +5,7 @@ import type {
   GateNode,
   GateSpec,
   SampleInfo,
+  SpilloverSpec,
   TransformSpec,
   Viewport,
   WorkspaceState,
@@ -76,6 +77,25 @@ export class EngineController {
 
   setAxes(x: string, y: string): void {
     this.store.set({ axes: { x, y } });
+  }
+
+  /**
+   * Apply compensation to the active sample (using the given spillover or the
+   * one parsed from its FCS). Compensate BEFORE gating — existing gates are not
+   * re-evaluated. Marks the sample compensated in view state.
+   */
+  async compensate(spill?: SpilloverSpec): Promise<void> {
+    const { activeSampleId } = this.store.get();
+    if (!activeSampleId) throw new Error("no active sample");
+    this.store.set({ status: "computing" });
+    await this.api.compensate(activeSampleId, spill);
+    this.store.set((s) => ({
+      samples: {
+        ...s.samples,
+        [activeSampleId]: { ...s.samples[activeSampleId], compensated: true },
+      },
+      status: "idle",
+    }));
   }
 
   setTransform(transform: TransformSpec): void {

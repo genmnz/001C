@@ -19,7 +19,8 @@ type Method =
   | "addColumns"
   | "bin2d"
   | "evaluateGate"
-  | "stats";
+  | "stats"
+  | "compensate";
 
 interface RpcMessage {
   id: number;

@@ -56,6 +56,17 @@ export interface SampleInfo {
   eventCount: number;
   channels: ChannelMeta[];
   warnings?: string[];
+  /** A $SPILLOVER/$COMP matrix was found in the FCS and can be applied. */
+  hasSpillover?: boolean;
+  /** Compensation has been applied to this sample's columns. */
+  compensated?: boolean;
+}
+
+/** A spillover matrix, structured-clone-safe for the worker boundary. */
+export interface SpilloverSpec {
+  channels: string[];
+  /** Row-major n*n values. */
+  values: number[];
 }
 
 /** A node in the gate tree. Holds geometry + identity, NOT the population bits. */
