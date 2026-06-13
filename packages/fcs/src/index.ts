@@ -7,6 +7,8 @@
  * collects `warnings` rather than throwing on recoverable issues.
  */
 export { parseFcs } from "./parse.ts";
+export { writeFcs } from "./write.ts";
+export type { FcsWriteInput } from "./write.ts";
 export { parseHeader } from "./header.ts";
 export { parseText } from "./text.ts";
 export { rangeMask } from "./data.ts";

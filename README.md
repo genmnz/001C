@@ -75,11 +75,14 @@ cd app-react && bun run build        # -> app-react/dist
 
 ## Status
 
-- **Tested headlessly (CI-safe):** ~517 TS tests (≈68k assertions) + 10 Rust tests.
-  Engine now also covers PCA, k-means (+ a Rust assign kernel), Otsu/density-valley
-  auto-thresholds, QC/cleaning gates, comparative & differential stats
-  (fold-change, positivity, co-expression, diversity, Mann–Whitney), and workspace
-  save/load. The full feature plan is in `docs/ROADMAP.md`.
+- **Tested headlessly (CI-safe):** ~537 TS tests (≈68k assertions) + 10 Rust tests.
+  Engine covers: FCS read **and write**; cleaning (margin/singlet/debris/saturation);
+  compensation (+ **spillover-from-controls**, **spectral unmixing OLS/NNLS**);
+  transforms (logicle/hyperlog/asinh/log/linear/quantile + **estimateLogicle** auto-W);
+  all gate types; PCA; k-means (+ Rust kernel); Otsu/density-valley auto-gating;
+  comparative/differential stats; density (**marching-squares contours**, **hexbin**);
+  sample concat/downsample/CSV export; and workspace save/load. Tracked in
+  `docs/ENGINE.md` + `docs/ADVANCED.md`; licensing in `docs/LICENSES.md`.
   Every core operation is **validated against the flowutils external oracle**:
   logicle (~5e-17) and hyperlog (~3e-17) transforms, compensation
   (`solve(Sᵀ,·)`, transpose bug caught), and polygon/ellipse gating (0 mismatches

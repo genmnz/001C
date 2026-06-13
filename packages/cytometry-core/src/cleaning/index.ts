@@ -1,5 +1,6 @@
 import { RectangleGate } from "../gating/rectangle.ts";
 import type { Gate2D } from "../gating/types.ts";
+import { EventMatrix } from "../matrix.ts";
 import { Population } from "../population.ts";
 
 /**
@@ -62,6 +63,31 @@ export function saturationMask(
   const pop = new Population(column.length, undefined, "non-saturated");
   for (let i = 0; i < column.length; i++) {
     if (column[i] < max) pop.set(i);
+  }
+  return pop;
+}
+
+/**
+ * Margin/boundary mask: drop events sitting at instrument extremes (off-scale).
+ * Keeps events strictly inside (min, max) on every named channel. Reimplemented
+ * from flowCore's boundary filter (Artistic-2.0).
+ */
+export function marginMask(
+  matrix: EventMatrix,
+  bounds: Record<string, [number, number]>,
+): Population {
+  const entries = Object.entries(bounds).map(([name, range]) => ({
+    col: matrix.columnByName(name),
+    min: range[0],
+    max: range[1],
+  }));
+  const pop = new Population(matrix.eventCount, undefined, "in-range");
+  outer: for (let e = 0; e < matrix.eventCount; e++) {
+    for (const { col, min, max } of entries) {
+      const v = col[e];
+      if (v <= min || v >= max) continue outer;
+    }
+    pop.set(e);
   }
   return pop;
 }

@@ -1,0 +1,30 @@
+joeee — NOTICES
+
+This product includes algorithms reimplemented from, or validated against, the
+following open-source cytometry projects. Where a source is copyleft (GPL/AGPL),
+the algorithm was clean-roomed from the published paper/specification and NO code
+was copied; where a source is permissive (BSD/MIT/Artistic-2.0), the algorithm
+was ported with attribution. See docs/LICENSES.md for the per-feature ledger.
+
+LOGICLE / BIEXPONENTIAL TRANSFORM — PATENT NOTICE
+-------------------------------------------------
+The logicle (biexponential) display transform implemented in
+packages/cytometry-core/src/transforms/logicle.ts derives from the Moore & Parks
+reference implementation:
+
+  Moore WA, Parks DR. "Update for the logicle data scale including operational
+  code implementations." Cytometry Part A 2012; 81A(4):273-277.
+  doi:10.1002/cyto.a.22030.  © Board of Trustees, Leland Stanford Junior
+  University (BSD-style license).
+
+The logicle method is covered by US Patent 6,954,722 (Parks DR, Moore WA;
+issued Oct 11, 2005). Stanford's Office of Technology Licensing states that
+"Stanford will not assert U.S. patent 6,954,722 in the field of flow cytometry."
+This implementation is for flow cytometry. Anyone redistributing joeee for use
+outside flow cytometry should obtain independent legal review.
+
+VALIDATION ORACLE
+-----------------
+Transforms, compensation, and gating are validated against flowutils (the
+FlowKit logicle C extension; BSD-3-Clause, © 2019 Scott White), which derives
+from the same Moore-Parks reference. See docs/VALIDATION.md.

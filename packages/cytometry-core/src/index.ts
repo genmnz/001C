@@ -22,6 +22,7 @@ export * as reduce from "./reduce/index.ts";
 export * as cluster from "./cluster/index.ts";
 export * as autogate from "./autogate/index.ts";
 export * as cleaning from "./cleaning/index.ts";
+export * as sample from "./sample/index.ts";
 export {
   defaultKernels,
   loadWasmKernels,
