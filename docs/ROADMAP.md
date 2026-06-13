@@ -39,16 +39,20 @@ Prove the things that silently sink the timeline.
 
 - [x] CPU 2D/1D histogram (source of truth); pure `densityToImage`; colormaps.
 - [x] WebGPU scatter (instanced) + GPU histogram + colormap render (WGSL).
-- [ ] Logicle-aware axis ticks/gridlines; LOD downsampling for zoomed-out views;
-      a `max`-bin reduction pass on GPU; pan/zoom UX; pixel-parity test GPU vs CPU.
+- [x] Logicle-aware axis ticks; **pan / wheel-zoom-about-cursor** (pure,
+      fuzz-tested) wired into the React shell.
+- [ ] LOD downsampling for zoomed-out views; a `max`-bin reduction pass on GPU;
+      on-device pixel-parity test GPU vs CPU.
 
 ## Phase 4 — gating  ·  ~1 week  ·  [done (engine), UX pending]
 
 - [x] rectangle/range/ellipse/polygon/quadrant + boolean (bitset); parent
-      restriction; live counts.
-- [ ] Interactive draw/edit handles (SVG/Canvas2D overlay on the GL canvas);
-      GPU picking/hover; sub-100 ms drag verified at 10M events (move the kernel
-      to WASM SIMD if TS misses it).
+      restriction; live counts. **All gate geometry oracle-validated vs flowutils.**
+- [x] Interactive **rectangle-gate drawing** + SVG gate overlay in the React
+      shell (drag→GateSpec via fuzz-tested `rectFromDrag`).
+- [ ] Polygon draw (click vertices) + draggable vertex handles
+      (`movePolygonVertex` exists); GPU picking/hover; sub-100 ms drag verified at
+      10M events (move the kernel to WASM SIMD if TS misses it).
 
 ## Phase 5 — stats + gate tree  ·  ~3–5 days  ·  [done (engine), UI pending]
 

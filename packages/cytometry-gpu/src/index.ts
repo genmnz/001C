@@ -16,6 +16,19 @@ export type { DensityImage, DensityImageOptions } from "./density-image.ts";
 export { axisTicks } from "./axis/ticks.ts";
 export type { AxisOptions, Tick } from "./axis/ticks.ts";
 export {
+  displayToScreen,
+  panViewport,
+  screenToDisplay,
+  zoomViewport,
+} from "./interaction/viewport.ts";
+export type { Pt } from "./interaction/viewport.ts";
+export {
+  movePolygonVertex,
+  polygonFromScreen,
+  rectFromDrag,
+} from "./interaction/gates.ts";
+export type { RectGeometry } from "./interaction/gates.ts";
+export {
   detectWebGPU,
   initWebGPU,
   isCrossOriginIsolated,

@@ -79,8 +79,10 @@ cd app-react && bun run build        # -> app-react/dist
   params, bitset De Morgan laws at 1M bits, stats vs naive, density conservation
   at 500k events, a 4-level gate hierarchy at 100k events), the FCS gotchas, the
   TS⇄WASM kernel parity, and the GPU bin formula vs the CPU histogram.
-- **Runnable:** the React shell builds (Vite, 56 kB gzipped) and the WASM kernels
-  build to wasm32 with SIMD.
+- **Runnable:** the React shell builds (Vite, ~57 kB gzipped) with interactive
+  pan / wheel-zoom-about-cursor / rectangle-gate drawing (all on pure,
+  fuzz-tested interaction math) and an SVG gate overlay; the WASM kernels build
+  to wasm32 with SIMD.
 - **Browser-only (real, not in CI):** WebGPU scatter + GPU 2D-histogram density
   (compute→render buffer sharing; see `app-web/webgpu-smoketest.html`), the
   Worker host.

@@ -72,8 +72,11 @@ saved layout of plots + panels reading the same controller store.
    `Canvas2DRenderer.drawDensity(bins)`.
 4. Axis layer: `axisTicks(transform, { dataMin, dataMax, pxStart, pxEnd })` →
    draw ticks/labels in the SVG overlay.
-5. Gates: SVG handles emit a `GateSpec`; `controller.addGate(spec)` evaluates it
-   and the gate tree + stats update from the store.
+5. Gates: SVG overlay emits a `GateSpec` (rectangle drawing wired today;
+   `rectFromDrag`/`polygonFromScreen`/`movePolygonVertex` are pure + fuzz-tested);
+   `controller.addGate(spec)` evaluates it and the gate tree + stats update from
+   the store. Pan/zoom (`panViewport`/`zoomViewport`) transform the viewport the
+   density query uses.
 
 The big arrays never touch the UI — only viewport/axis/gate *intent* goes in, and
 bins/positions/counts come back out.
