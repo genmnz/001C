@@ -8,8 +8,9 @@ Stochastic methods validated by ARI/modularity/EMD, never exact coords.
 
 ## A. Automated gating
 - [x] Otsu + density-valley (mindensity) 1D auto-threshold (flowDensity/openCyto) ← `core/autogate`
+- [x] Quantile gate + tail gate (KDE-based) ← `core/autogate`
 - [x] Singlet gate ← `core/cleaning`
-- [ ] peak/tail/quantile gating; flowClust/GMM 2D gating; openCyto CSV templates; GateNet AI
+- [ ] peak-detection; flowClust/GMM 2D gating; openCyto CSV templates; GateNet AI
 
 ## B. Dimensionality reduction
 - [x] PCA (Jacobi eigen) ← `core/reduce`
@@ -17,7 +18,8 @@ Stochastic methods validated by ARI/modularity/EMD, never exact coords.
 
 ## C. Clustering
 - [x] k-means (++ seeded; Rust assign kernel) ← `core/cluster`
-- [ ] FlowSOM (SOM+MST+consensus, clean-room); PhenoGraph (kNN→Jaccard→Leiden); DBSCAN/HDBSCAN/GMM/hierarchical
+- [x] DBSCAN (density-based; noise = -1) ← `core/cluster`
+- [ ] FlowSOM (SOM+MST+consensus, clean-room); PhenoGraph (kNN→Jaccard→Leiden); HDBSCAN/GMM/hierarchical
 
 ## D. Cell population discovery
 - [ ] rare/novel detection; marker enrichment; cell typing; atlas mapping; trajectory

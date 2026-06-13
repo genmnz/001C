@@ -33,6 +33,37 @@ function hist(
   return counts;
 }
 
+import { kde1d } from "../density/kde.ts";
+
+/** Quantile gate: the data value at event-quantile q (0..1). openCyto quantileGate. */
+export function quantileThreshold(values: ArrayLike<number>, q: number): number {
+  const sorted = Float64Array.from(values as ArrayLike<number>).sort();
+  const n = sorted.length;
+  if (n === 0) return NaN;
+  const rank = Math.min(n - 1, Math.max(0, Math.round(q * (n - 1))));
+  return sorted[rank];
+}
+
+/**
+ * Tail gate: from the main density peak, walk toward the high tail until the KDE
+ * falls below `fraction` of the peak density; that x is the cutpoint. openCyto
+ * tailgate / cytokine-gate idea (KDE-based), clean-roomed from the description.
+ */
+export function tailThreshold(
+  values: ArrayLike<number>,
+  fraction = 0.05,
+  bins = 256,
+): number {
+  const k = kde1d(values, { bins });
+  let peak = 0;
+  for (let i = 1; i < k.density.length; i++) if (k.density[i] > k.density[peak]) peak = i;
+  const cut = k.density[peak] * fraction;
+  for (let i = peak; i < k.density.length; i++) {
+    if (k.density[i] < cut) return k.x[i];
+  }
+  return k.x[k.x.length - 1];
+}
+
 /** Otsu's method: the threshold (data value) maximizing between-class variance. */
 export function otsuThreshold(
   values: ArrayLike<number>,
