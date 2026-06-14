@@ -17,7 +17,8 @@ Stochastic methods validated by ARI/modularity/EMD, never exact coords.
 - [x] PCA (Jacobi eigen) ← `core/reduce`
 - [x] t-SNE (exact, perplexity-calibrated; neighbor-preservation tested) ← `core/reduce`
 - [x] UMAP (fuzzy simplicial set + SGD; neighbor-preservation tested) ← `core/reduce`
-- [ ] MDS/Isomap/diffusion maps; PaCMAP; PHATE; EmbedSOM
+- [x] Classical MDS (Torgerson) ← `core/reduce`
+- [ ] Isomap/diffusion maps; PaCMAP; PHATE; EmbedSOM
 
 ## C. Clustering
 - [x] k-means (++ seeded; Rust assign kernel) ← `core/cluster`
@@ -25,10 +26,12 @@ Stochastic methods validated by ARI/modularity/EMD, never exact coords.
 - [x] FlowSOM (SOM + MST + k-means metacluster, clean-room) ← `core/cluster`
 - [x] GMM (EM, diagonal covariance) ← `core/cluster`
 - [x] PhenoGraph (kNN→Jaccard→Louvain; communities never span blobs) ← `core/cluster` + `core/graph`
-- [ ] HDBSCAN; hierarchical; spectral; consensus metaclustering; Leiden refinement
+- [x] Hierarchical agglomerative (avg/complete/single linkage) ← `core/cluster`
+- [ ] HDBSCAN; spectral; consensus metaclustering; Leiden refinement
 
 ## D. Cell population discovery
-- [ ] rare/novel detection; marker enrichment; cell typing; atlas mapping; trajectory
+- [x] Marker enrichment (per-cluster z-scores) + top-marker cell typing ← `core/discovery`
+- [ ] rare/novel detection; atlas mapping; trajectory
 
 ## E. Differential analysis
 - [x] Differential abundance (per-sample freq + Mann-Whitney) ← `core/stats/comparative`
@@ -49,15 +52,16 @@ Stochastic methods validated by ARI/modularity/EMD, never exact coords.
 
 ## I. CyTOF-specific
 - [x] Bead normalization (Finck 2013) + single-cell debarcoding (Zunder/Finck) ← `core/cytof`
-- [ ] isotope/metal spillover (NNLS via core/compensation/unmix)
+- [x] isotope/metal spillover correction (NNLS) ← `core/cytof`
 
 ## J. Spectral flow
 - [x] core unmixing OLS/NNLS (see §3) ← `core/compensation/unmix`
-- [ ] WLS/Poisson; per-cell autofluorescence; spectral signature library/QC/residuals
+- [x] WLS/Poisson unmixing + per-cell autofluorescence column ← `core/compensation/unmix`
+- [ ] spectral signature library/QC/residuals
 
 ## K. Multi-sample
-- [~] population frequency vectors per sample (diff-abundance input)
-- [ ] cohort comparison/aggregation; cross-sample matching; consensus pops; sample similarity
+- [x] population frequency vectors + sample similarity (Pearson/cosine) ← `core/diff` + `core/multisample`
+- [ ] cohort aggregation; cross-sample matching; consensus pops
 
 ## L. Workspace / serialization
 - [x] native workspace doc save/load (gates+transform+axes+metadata) ← `engine-controller/workspace`

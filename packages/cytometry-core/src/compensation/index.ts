@@ -6,4 +6,10 @@ export {
   spilloverFromMedians,
 } from "./spillover.ts";
 export type { SingleStainControl } from "./spillover.ts";
-export { unmixMatrix, unmixOLS, nnls } from "./unmix.ts";
+export {
+  unmixMatrix,
+  unmixOLS,
+  unmixWLS,
+  appendAutofluorescence,
+  nnls,
+} from "./unmix.ts";

@@ -142,6 +142,51 @@ export function nnls(
   return Array.from(a);
 }
 
+/**
+ * Weighted least squares unmixing: solve (Mᵀ W M) a = Mᵀ W x with per-detector
+ * weights. Default weights ≈ 1/max(x, eps) (Poisson-noise model), down-weighting
+ * bright, noisy detectors. M is d×f.
+ */
+export function unmixWLS(
+  M: number[][],
+  x: ArrayLike<number>,
+  opts: { weights?: ArrayLike<number>; eps?: number } = {},
+): number[] {
+  const d = M.length;
+  const f = M[0].length;
+  const eps = opts.eps ?? 1;
+  const w = new Float64Array(d);
+  for (let k = 0; k < d; k++) {
+    w[k] = opts.weights ? opts.weights[k] : 1 / Math.max(x[k], eps);
+  }
+  const mtwm = new Float64Array(f * f);
+  const mtwx = new Float64Array(f);
+  for (let a = 0; a < f; a++) {
+    for (let b = 0; b < f; b++) {
+      let s = 0;
+      for (let k = 0; k < d; k++) s += M[k][a] * w[k] * M[k][b];
+      mtwm[a * f + b] = s;
+    }
+    let sb = 0;
+    for (let k = 0; k < d; k++) sb += M[k][a] * w[k] * x[k];
+    mtwx[a] = sb;
+  }
+  const inv = invertSquare(mtwm, f);
+  const out = new Array(f).fill(0);
+  for (let a = 0; a < f; a++) {
+    let s = 0;
+    for (let b = 0; b < f; b++) s += inv[a * f + b] * mtwx[b];
+    out[a] = s;
+  }
+  return out;
+}
+
+/** Append an autofluorescence spectrum as an extra "fluorophore" column of M,
+ *  so unmixing yields a per-cell AF abundance (AF extraction/subtraction). */
+export function appendAutofluorescence(M: number[][], af: number[]): number[][] {
+  return M.map((row, k) => [...row, af[k]]);
+}
+
 /** Solve the unconstrained LS using only `cols` of M (normal equations). */
 function solvePassive(
   M: number[][],

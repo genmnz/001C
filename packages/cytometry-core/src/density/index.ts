@@ -4,5 +4,5 @@ export { marchingSquares } from "./contour.ts";
 export type { Segment } from "./contour.ts";
 export { hexbin } from "./hexbin.ts";
 export type { HexBin } from "./hexbin.ts";
-export { kde1d, silvermanBandwidth } from "./kde.ts";
-export type { Kde1d } from "./kde.ts";
+export { kde1d, kde2d, silvermanBandwidth } from "./kde.ts";
+export type { Kde1d, Kde2d } from "./kde.ts";

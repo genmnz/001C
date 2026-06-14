@@ -8,3 +8,5 @@ export { gmm } from "./gmm.ts";
 export type { GmmResult, GmmOptions } from "./gmm.ts";
 export { phenograph } from "./phenograph.ts";
 export type { PhenographResult } from "./phenograph.ts";
+export { agglomerative } from "./hierarchical.ts";
+export type { HierResult, Linkage } from "./hierarchical.ts";

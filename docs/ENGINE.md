@@ -61,7 +61,8 @@ docs/LICENSES.md).
 - [x] Contour lines — marching squares  ← `core/density/contour`
 - [x] Hexbin  ← `core/density/hexbin`
 - [x] KDE 1D (Gaussian, Silverman bandwidth)  ← `core/density/kde`
-- [ ] 2D KDE; violin/ridge density primitives
+- [x] 2D KDE (Gaussian product kernel) ← `core/density/kde`
+- [ ] violin/ridge density primitives
 
 ## Engine WASM wiring
 - [x] wasm32 + simd128, raw C ABI; logicle/poly/compensate/kmeans kernels exported

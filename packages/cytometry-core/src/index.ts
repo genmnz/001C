@@ -29,6 +29,8 @@ export * as normalize from "./normalize/index.ts";
 export * as cytof from "./cytof/index.ts";
 export * as ml from "./ml/index.ts";
 export * as spatial from "./spatial/index.ts";
+export * as discovery from "./discovery/index.ts";
+export * as multisample from "./multisample/index.ts";
 export {
   defaultKernels,
   loadWasmKernels,
