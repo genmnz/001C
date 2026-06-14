@@ -1,9 +1,12 @@
 import type { ChannelMeta, density } from "@joeee/cytometry-core";
 import type { EngineApi } from "./backend.ts";
 import { Store } from "./store.ts";
+import { parseGatingML } from "./interop/gatingml.ts";
 import {
   deserializeWorkspace,
   serializeWorkspace,
+  topoSortGates,
+  type SerializedGate,
   type WorkspaceDoc,
 } from "./workspace.ts";
 import type {
@@ -207,6 +210,22 @@ export class EngineController {
   async importWorkspace(doc: WorkspaceDoc): Promise<void> {
     const { axes, transform, gates } = deserializeWorkspace(doc);
     this.store.set({ axes, transform, gates: [] });
+    await this.rebuildGates(gates);
+  }
+
+  /**
+   * Import a Gating-ML 2.0 document and evaluate its gates against the active
+   * sample under the current transform (does not change axes/transform). Returns
+   * the number of gates created. See interop/gatingml.ts for supported gates.
+   */
+  async importGatingML(xml: string): Promise<number> {
+    const gates = topoSortGates(parseGatingML(xml));
+    await this.rebuildGates(gates);
+    return gates.length;
+  }
+
+  /** Re-evaluate serialized gates (parents first) against the active sample. */
+  private async rebuildGates(gates: SerializedGate[]): Promise<void> {
     const oldToNew = new Map<string, string>();
     for (const sg of gates) {
       const parentId = sg.parentId ? (oldToNew.get(sg.parentId) ?? null) : null;

@@ -27,3 +27,5 @@ export {
   topoSortGates,
 } from "./workspace.ts";
 export type { WorkspaceDoc, SerializedGate } from "./workspace.ts";
+export { parseGatingML } from "./interop/gatingml.ts";
+export { parseXml } from "./interop/xml.ts";
