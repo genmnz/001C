@@ -40,13 +40,16 @@ Stochastic methods validated by ARI/modularity/EMD, never exact coords.
 - [ ] reference/control normalization; drift correction; instrument harmonization
 
 ## G. Machine learning
-- [ ] RF/SVM/logistic (linfa/smartcore); NN/CNN (candle/burn); feature importance/SHAP
+- [x] Logistic regression (IRLS) + accuracy ← `core/ml`
+- [ ] RF/SVM; NN/CNN; feature importance/SHAP
 
 ## H. Spatial cytometry
-- [ ] coordinates; neighborhood (kd-tree); cell-cell interaction; spatial clustering/enrichment
+- [x] Neighborhood enrichment (kNN co-occurrence vs frequency model) ← `core/spatial`
+- [ ] cell-cell interaction; spatial clustering; tissue-region annotation
 
 ## I. CyTOF-specific
-- [ ] bead normalization (Finck 2013); debarcoding (Zunder/Finck); isotope spillover (NNLS)
+- [x] Bead normalization (Finck 2013) + single-cell debarcoding (Zunder/Finck) ← `core/cytof`
+- [ ] isotope/metal spillover (NNLS via core/compensation/unmix)
 
 ## J. Spectral flow
 - [x] core unmixing OLS/NNLS (see §3) ← `core/compensation/unmix`
