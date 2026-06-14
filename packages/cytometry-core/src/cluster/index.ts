@@ -10,3 +10,6 @@ export { phenograph } from "./phenograph.ts";
 export type { PhenographResult } from "./phenograph.ts";
 export { agglomerative } from "./hierarchical.ts";
 export type { HierResult, Linkage } from "./hierarchical.ts";
+export { consensusCluster } from "./consensus.ts";
+export type { ConsensusResult } from "./consensus.ts";
+export { labelsToPopulations } from "./labels.ts";

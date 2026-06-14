@@ -24,7 +24,8 @@ docs/LICENSES.md).
 - [x] Saturation / margin / boundary removal  ← `core/cleaning`
 - [x] Singlet (A/H ratio) · debris (low FSC/SSC) · time-window  ← `core/cleaning`
 - [x] flowCut-style bin median/MAD anomaly QC  ← `core/cleaning/qc`
-- [ ] PeacoQC isolation-tree + density-peak (clean-room); flowAI changepoint
+- [x] flowCut-style bin median/MAD anomaly QC ← `core/cleaning/qc`
+- [ ] PeacoQC isolation-tree (clean-room); flowAI changepoint
 - [ ] Instrument-drift detection (time-binned median)
 
 ## §3 Compensation

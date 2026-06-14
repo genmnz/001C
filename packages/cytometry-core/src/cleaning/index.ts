@@ -105,3 +105,5 @@ export function timeWindowMask(
   }
   return pop;
 }
+
+export { flowCutQC } from "./qc.ts";

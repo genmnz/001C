@@ -27,7 +27,9 @@ Stochastic methods validated by ARI/modularity/EMD, never exact coords.
 - [x] GMM (EM, diagonal covariance) ← `core/cluster`
 - [x] PhenoGraph (kNN→Jaccard→Louvain; communities never span blobs) ← `core/cluster` + `core/graph`
 - [x] Hierarchical agglomerative (avg/complete/single linkage) ← `core/cluster`
-- [ ] HDBSCAN; spectral; consensus metaclustering; Leiden refinement
+- [x] Consensus clustering (co-association + agglomerative) ← `core/cluster`
+- [x] Cluster→population bridge (labelsToPopulations) ← `core/cluster`
+- [ ] HDBSCAN; spectral; Leiden refinement
 
 ## D. Cell population discovery
 - [x] Marker enrichment (per-cluster z-scores) + top-marker cell typing ← `core/discovery`
@@ -61,7 +63,8 @@ Stochastic methods validated by ARI/modularity/EMD, never exact coords.
 
 ## K. Multi-sample
 - [x] population frequency vectors + sample similarity (Pearson/cosine) ← `core/diff` + `core/multisample`
-- [ ] cohort aggregation; cross-sample matching; consensus pops
+- [x] cross-sample population matching (nearest-centroid) ← `core/multisample`
+- [ ] cohort aggregation; consensus pops
 
 ## L. Workspace / serialization
 - [x] native workspace doc save/load (gates+transform+axes+metadata) ← `engine-controller/workspace`
