@@ -10,16 +10,20 @@ Stochastic methods validated by ARI/modularity/EMD, never exact coords.
 - [x] Otsu + density-valley (mindensity) 1D auto-threshold (flowDensity/openCyto) ← `core/autogate`
 - [x] Quantile gate + tail gate (KDE-based) ← `core/autogate`
 - [x] Singlet gate ← `core/cleaning`
-- [ ] peak-detection; flowClust/GMM 2D gating; openCyto CSV templates; GateNet AI
+- [~] GMM/mixture-model gating backbone available (`core/cluster/gmm`); wiring to 2D gates TODO
+- [ ] peak-detection; openCyto CSV templates; GateNet AI
 
 ## B. Dimensionality reduction
 - [x] PCA (Jacobi eigen) ← `core/reduce`
-- [ ] MDS/Isomap/diffusion maps; t-SNE (Barnes-Hut); UMAP (kNN+annembed); PaCMAP; PHATE; EmbedSOM
+- [x] t-SNE (exact, perplexity-calibrated; neighbor-preservation tested) ← `core/reduce`
+- [ ] UMAP (kNN+annembed); MDS/Isomap/diffusion maps; PaCMAP; PHATE; EmbedSOM
 
 ## C. Clustering
 - [x] k-means (++ seeded; Rust assign kernel) ← `core/cluster`
 - [x] DBSCAN (density-based; noise = -1) ← `core/cluster`
-- [ ] FlowSOM (SOM+MST+consensus, clean-room); PhenoGraph (kNN→Jaccard→Leiden); HDBSCAN/GMM/hierarchical
+- [x] FlowSOM (SOM + MST + k-means metacluster, clean-room) ← `core/cluster`
+- [x] GMM (EM, diagonal covariance) ← `core/cluster`
+- [ ] PhenoGraph (kNN→Jaccard→Leiden); HDBSCAN; hierarchical; spectral; consensus metaclustering
 
 ## D. Cell population discovery
 - [ ] rare/novel detection; marker enrichment; cell typing; atlas mapping; trajectory

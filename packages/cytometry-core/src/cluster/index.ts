@@ -2,3 +2,7 @@ export { kmeans } from "./kmeans.ts";
 export type { KMeansResult, KMeansOptions } from "./kmeans.ts";
 export { dbscan } from "./dbscan.ts";
 export type { DbscanResult } from "./dbscan.ts";
+export { flowSOM } from "./flowsom.ts";
+export type { FlowSomResult, FlowSomOptions } from "./flowsom.ts";
+export { gmm } from "./gmm.ts";
+export type { GmmResult, GmmOptions } from "./gmm.ts";
