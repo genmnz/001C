@@ -6,3 +6,5 @@ export { flowSOM } from "./flowsom.ts";
 export type { FlowSomResult, FlowSomOptions } from "./flowsom.ts";
 export { gmm } from "./gmm.ts";
 export type { GmmResult, GmmOptions } from "./gmm.ts";
+export { phenograph } from "./phenograph.ts";
+export type { PhenographResult } from "./phenograph.ts";

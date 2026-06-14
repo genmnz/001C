@@ -16,14 +16,16 @@ Stochastic methods validated by ARI/modularity/EMD, never exact coords.
 ## B. Dimensionality reduction
 - [x] PCA (Jacobi eigen) ← `core/reduce`
 - [x] t-SNE (exact, perplexity-calibrated; neighbor-preservation tested) ← `core/reduce`
-- [ ] UMAP (kNN+annembed); MDS/Isomap/diffusion maps; PaCMAP; PHATE; EmbedSOM
+- [x] UMAP (fuzzy simplicial set + SGD; neighbor-preservation tested) ← `core/reduce`
+- [ ] MDS/Isomap/diffusion maps; PaCMAP; PHATE; EmbedSOM
 
 ## C. Clustering
 - [x] k-means (++ seeded; Rust assign kernel) ← `core/cluster`
 - [x] DBSCAN (density-based; noise = -1) ← `core/cluster`
 - [x] FlowSOM (SOM + MST + k-means metacluster, clean-room) ← `core/cluster`
 - [x] GMM (EM, diagonal covariance) ← `core/cluster`
-- [ ] PhenoGraph (kNN→Jaccard→Leiden); HDBSCAN; hierarchical; spectral; consensus metaclustering
+- [x] PhenoGraph (kNN→Jaccard→Louvain; communities never span blobs) ← `core/cluster` + `core/graph`
+- [ ] HDBSCAN; hierarchical; spectral; consensus metaclustering; Leiden refinement
 
 ## D. Cell population discovery
 - [ ] rare/novel detection; marker enrichment; cell typing; atlas mapping; trajectory
