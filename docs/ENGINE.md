@@ -39,7 +39,8 @@ docs/LICENSES.md).
 - [x] Inverse transforms; channel-specific application
 - [x] estimateLogicle (auto-W from negatives)  ← `core/transforms/estimateLogicle`
 - [x] Quantile transform  ← `core/transforms/quantile`
-- [ ] Custom/user formula; FlowJo-distinct biexponential parameterization
+- [x] Custom/user-formula transform ← `core/transforms/custom`
+- [ ] FlowJo-distinct biexponential parameterization
 
 ## §5 Manual gating
 - [x] rectangle/range/ellipse/polygon/quadrant (oracle-validated; RS poly)
@@ -55,7 +56,8 @@ docs/LICENSES.md).
 ## §7 Statistics
 - [x] counts · %parent · %total · mean · median(MFI) · geomean · CV · MAD · percentile
 - [x] fold-change · positivity · co-expression · Shannon/Simpson · Mann-Whitney · diff-abundance
-- [ ] enrichment scores · absolute counts (beads/volume)
+- [x] absolute counts (bead-based cells/µL) ← `core/stats/summary`
+- [ ] enrichment scores
 
 ## §8 Density (engine source of truth)
 - [x] 1D/2D histogram binning (conservation-tested)
@@ -63,7 +65,7 @@ docs/LICENSES.md).
 - [x] Hexbin  ← `core/density/hexbin`
 - [x] KDE 1D (Gaussian, Silverman bandwidth)  ← `core/density/kde`
 - [x] 2D KDE (Gaussian product kernel) ← `core/density/kde`
-- [ ] violin/ridge density primitives
+- [x] violin/box/ridge primitive (KDE + five-number summary) ← `core/stats/summary`
 
 ## Engine WASM wiring
 - [x] wasm32 + simd128, raw C ABI; logicle/poly/compensate/kmeans kernels exported

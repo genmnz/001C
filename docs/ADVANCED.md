@@ -69,7 +69,8 @@ Stochastic methods validated by ARI/modularity/EMD, never exact coords.
 ## L. Workspace / serialization
 - [x] native workspace doc save/load (gates+transform+axes+metadata) ← `engine-controller/workspace`
 - [x] Gating-ML 2.0 import (rectangle/range/polygon/ellipsoid; dependency-free XML) ← `engine-controller/interop`
-- [ ] undo/redo; audit trail; gate templates; FlowJo .wsp import
+- [x] Undo/redo (view-state history; import = one unit) ← `engine-controller`
+- [ ] audit trail; gate templates; FlowJo .wsp import
 
 ## M. Collaboration (LAST)
 - [ ] shared projects; comments; review/approval; version control; permissions

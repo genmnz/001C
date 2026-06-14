@@ -6,4 +6,5 @@ export { AsinhTransform, CofactorAsinhTransform } from "./asinh.ts";
 export { LogicleTransform, solveD } from "./logicle.ts";
 export { HyperlogTransform } from "./hyperlog.ts";
 export { QuantileTransform } from "./quantile.ts";
+export { CustomTransform } from "./custom.ts";
 export { estimateLogicle, estimateLogicleW } from "./estimateLogicle.ts";

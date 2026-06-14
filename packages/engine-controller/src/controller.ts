@@ -44,12 +44,49 @@ let gateCounter = 0;
 export class EngineController {
   readonly store = new Store<WorkspaceState>(initialState());
 
+  // Undo/redo history of (serializable) view-state snapshots.
+  private past: WorkspaceState[] = [];
+  private future: WorkspaceState[] = [];
+  private suppressHistory = false;
+  private readonly historyLimit = 100;
+
   constructor(private readonly api: EngineApi) {}
+
+  /** Snapshot current view-state before a mutating command. */
+  private record(): void {
+    if (this.suppressHistory) return;
+    this.past.push(this.store.get());
+    if (this.past.length > this.historyLimit) this.past.shift();
+    this.future = [];
+  }
+
+  canUndo(): boolean {
+    return this.past.length > 0;
+  }
+  canRedo(): boolean {
+    return this.future.length > 0;
+  }
+  /** Restore the previous view-state. Returns false if nothing to undo. */
+  undo(): boolean {
+    const prev = this.past.pop();
+    if (!prev) return false;
+    this.future.push(this.store.get());
+    this.store.set(prev); // full key set -> full replace
+    return true;
+  }
+  redo(): boolean {
+    const next = this.future.pop();
+    if (!next) return false;
+    this.past.push(this.store.get());
+    this.store.set(next);
+    return true;
+  }
 
   async loadSample(
     name: string,
     buffer: ArrayBuffer | Uint8Array,
   ): Promise<SampleInfo> {
+    this.record();
     this.store.set({ status: "loading" });
     const info = await this.api.loadFcs(name, buffer);
     this.adoptSample(info);
@@ -61,6 +98,7 @@ export class EngineController {
     channels: ChannelMeta[],
     columns: ArrayLike<number>[],
   ): Promise<SampleInfo> {
+    this.record();
     this.store.set({ status: "loading" });
     const info = await this.api.addColumns(name, channels, columns);
     this.adoptSample(info);
@@ -84,6 +122,7 @@ export class EngineController {
   }
 
   setAxes(x: string, y: string): void {
+    this.record();
     this.store.set({ axes: { x, y } });
   }
 
@@ -95,6 +134,7 @@ export class EngineController {
   async compensate(spill?: SpilloverSpec): Promise<void> {
     const { activeSampleId } = this.store.get();
     if (!activeSampleId) throw new Error("no active sample");
+    this.record();
     this.store.set({ status: "computing" });
     await this.api.compensate(activeSampleId, spill);
     this.store.set((s) => ({
@@ -107,6 +147,7 @@ export class EngineController {
   }
 
   setTransform(transform: TransformSpec): void {
+    this.record();
     this.store.set({ transform });
   }
 
@@ -136,6 +177,7 @@ export class EngineController {
     spec: GateSpec,
     opts: { name?: string; parentId?: string | null; color?: string } = {},
   ): Promise<GateNode> {
+    this.record();
     this.store.set({ status: "computing" });
     const { activeSampleId, transform, gates } = this.store.get();
     if (!activeSampleId) throw new Error("no active sample");
@@ -208,6 +250,7 @@ export class EngineController {
    * The sample(s) must already be loaded (event data is not part of the doc).
    */
   async importWorkspace(doc: WorkspaceDoc): Promise<void> {
+    this.record();
     const { axes, transform, gates } = deserializeWorkspace(doc);
     this.store.set({ axes, transform, gates: [] });
     await this.rebuildGates(gates);
@@ -219,22 +262,29 @@ export class EngineController {
    * the number of gates created. See interop/gatingml.ts for supported gates.
    */
   async importGatingML(xml: string): Promise<number> {
+    this.record();
     const gates = topoSortGates(parseGatingML(xml));
     await this.rebuildGates(gates);
     return gates.length;
   }
 
-  /** Re-evaluate serialized gates (parents first) against the active sample. */
+  /** Re-evaluate serialized gates (parents first) as a single history unit. */
   private async rebuildGates(gates: SerializedGate[]): Promise<void> {
-    const oldToNew = new Map<string, string>();
-    for (const sg of gates) {
-      const parentId = sg.parentId ? (oldToNew.get(sg.parentId) ?? null) : null;
-      const node = await this.addGate(sg.spec, {
-        name: sg.name,
-        parentId,
-        color: sg.color,
-      });
-      oldToNew.set(sg.id, node.id);
+    const wasSuppressed = this.suppressHistory;
+    this.suppressHistory = true;
+    try {
+      const oldToNew = new Map<string, string>();
+      for (const sg of gates) {
+        const parentId = sg.parentId ? (oldToNew.get(sg.parentId) ?? null) : null;
+        const node = await this.addGate(sg.spec, {
+          name: sg.name,
+          parentId,
+          color: sg.color,
+        });
+        oldToNew.set(sg.id, node.id);
+      }
+    } finally {
+      this.suppressHistory = wasSuppressed;
     }
   }
 }

@@ -22,3 +22,5 @@ export type {
   DifferentialAbundance,
   MannWhitney,
 } from "./comparative.ts";
+export { violin, absoluteConcentration } from "./summary.ts";
+export type { ViolinData } from "./summary.ts";
