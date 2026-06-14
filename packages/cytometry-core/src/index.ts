@@ -24,6 +24,8 @@ export * as graph from "./graph/index.ts";
 export * as autogate from "./autogate/index.ts";
 export * as cleaning from "./cleaning/index.ts";
 export * as sample from "./sample/index.ts";
+export * as diff from "./diff/index.ts";
+export * as normalize from "./normalize/index.ts";
 export {
   defaultKernels,
   loadWasmKernels,

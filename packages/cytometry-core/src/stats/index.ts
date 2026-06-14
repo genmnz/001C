@@ -7,6 +7,7 @@ export {
 } from "./descriptive.ts";
 export type { ChannelStats, Frequency } from "./descriptive.ts";
 export {
+  benjaminiHochberg,
   coExpression,
   differentialAbundance,
   foldChange,

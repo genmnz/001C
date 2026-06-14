@@ -32,10 +32,12 @@ Stochastic methods validated by ARI/modularity/EMD, never exact coords.
 
 ## E. Differential analysis
 - [x] Differential abundance (per-sample freq + Mann-Whitney) ← `core/stats/comparative`
-- [ ] diffcyt NB-GLM (edgeR-style) DA; limma-style moderated DS; GLMM; survival
+- [x] Cluster×sample abundance matrix + rank-based DA + BH-FDR (diffcyt-style) ← `core/diff`
+- [ ] edgeR NB-GLM DA; limma moderated DS; GLMM; survival
 
 ## F. Batch effects
-- [ ] CytoNorm (FlowSOM + per-cluster quantile splines, clean-room); quantile/reference normalization; drift correction
+- [x] CytoNorm (per-cluster quantile normalization to a goal, clean-room) ← `core/normalize`
+- [ ] reference/control normalization; drift correction; instrument harmonization
 
 ## G. Machine learning
 - [ ] RF/SVM/logistic (linfa/smartcore); NN/CNN (candle/burn); feature importance/SHAP

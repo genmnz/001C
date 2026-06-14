@@ -150,6 +150,27 @@ export function mannWhitneyU(a: number[], b: number[]): MannWhitney {
   return { U, z, p };
 }
 
+/**
+ * Benjamini-Hochberg FDR correction: maps raw p-values to q-values, enforcing
+ * monotonicity. Used to control false discovery across many clusters/markers
+ * (diffcyt reports BH-adjusted p-values).
+ */
+export function benjaminiHochberg(pvalues: number[]): number[] {
+  const n = pvalues.length;
+  if (n === 0) return [];
+  const order = pvalues.map((_, i) => i).sort((a, b) => pvalues[a] - pvalues[b]);
+  const q = new Array<number>(n);
+  let prev = 1;
+  for (let r = n - 1; r >= 0; r--) {
+    const i = order[r];
+    const rank = r + 1;
+    const val = Math.min(prev, (pvalues[i] * n) / rank);
+    q[i] = val;
+    prev = val;
+  }
+  return q;
+}
+
 export interface DifferentialAbundance {
   meanA: number;
   meanB: number;
