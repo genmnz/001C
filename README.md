@@ -62,16 +62,23 @@ imports `cytometry-core` or touches an `EventMatrix`. That boundary is the
 ## Quick start
 
 ```bash
-bun install            # wires the workspace (local workspace deps + dev @types)
-bun test               # 80 TS tests: engine, parser, controller, golden, wasm glue
+bun i                  # install everything (workspace deps + dev @types + app deps)
+bun run web            # run the React UI (Vite dev server, COOP/COEP isolated)
+bun test               # run the suite (engine, parser, controller, golden, wasm glue)
+bun run both           # web + test-watch together
 bun run typecheck      # tsc --noEmit across the workspace
-bun run build:wasm     # build the Rust SIMD kernels to wasm32 (optional; auto-falls back)
-bun run test:wasm      # 9 Rust tests: kernels + flowutils golden CSV
-
-# React shell (deps installed): runnable + builds
-cd app-react && bun run dev          # dev with COOP/COEP
-cd app-react && bun run build        # -> app-react/dist
+bun run build:web      # build the UI -> app-react/dist
+bun run build:wasm     # build the Rust SIMD kernels -> wasm32 (optional; auto-falls back)
+bun run test:wasm      # Rust tests: kernels + flowutils golden CSV
+bun run golden         # regenerate flowutils oracle golden values (needs the venv)
 ```
+
+The React UI (`app-react`) is the initial agnostic-UI wiring: a projects hub +
+analysis workspace with a menu bar, an operations sidebar (compensate / transform /
+gate / cluster / dim-reduction / stats / export / undo-redo), tabbed views
+(density · embedding · heatmap · stats) with mock visualization, an inspector
+(gate tree + stats), and a console. Every button calls the controller — the UI
+never imports the engine core.
 
 ## Status
 

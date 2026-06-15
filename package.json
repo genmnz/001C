@@ -11,7 +11,12 @@
     "app-react"
   ],
   "scripts": {
+    "web": "cd app-react && bun run dev",
+    "build:web": "cd app-react && bun run build",
     "test": "bun test",
+    "test:watch": "bun test --watch",
+    "both": "bun run scripts/dev.ts",
+    "dev": "bun run scripts/dev.ts",
     "test:wasm": "cd packages/cytometry-wasm && cargo test",
     "build:wasm": "cd packages/cytometry-wasm && rustup target add wasm32-unknown-unknown && RUSTFLAGS=\"-C target-feature=+simd128\" cargo build --release --target wasm32-unknown-unknown",
     "golden": "python scripts/golden/gen_golden.py",
