@@ -20,7 +20,9 @@ type Method =
   | "bin2d"
   | "evaluateGate"
   | "stats"
-  | "compensate";
+  | "compensate"
+  | "cluster"
+  | "embed";
 
 interface RpcMessage {
   id: number;

@@ -10,6 +10,8 @@ import {
   type WorkspaceDoc,
 } from "./workspace.ts";
 import type {
+  ClusterResult,
+  EmbedResult,
   GateNode,
   GateSpec,
   GateTemplate,
@@ -241,6 +243,51 @@ export class EngineController {
         },
       },
     }));
+  }
+
+  /** Run unsupervised clustering over the active sample; returns labels +
+   *  eventIndex (the renderer colors the embedding/scatter by them). */
+  async cluster(
+    method: "kmeans" | "flowsom" | "phenograph",
+    k: number,
+    opts: { channels?: string[]; downsampleTo?: number; seed?: number } = {},
+  ): Promise<ClusterResult> {
+    const { activeSampleId, transform, samples } = this.store.get();
+    if (!activeSampleId) throw new Error("no active sample");
+    const channels = opts.channels ?? samples[activeSampleId].channels.map((c) => c.name);
+    this.store.set({ status: "computing" });
+    const res = await this.api.cluster({
+      sampleId: activeSampleId,
+      channels,
+      method,
+      k,
+      transform,
+      downsampleTo: opts.downsampleTo,
+      seed: opts.seed,
+    });
+    this.store.set({ status: "idle" });
+    return res;
+  }
+
+  /** Compute a 2-D embedding (PCA/UMAP/t-SNE) of a subsample — for plotting. */
+  async embed(
+    method: "pca" | "umap" | "tsne",
+    opts: { channels?: string[]; maxPoints?: number; seed?: number } = {},
+  ): Promise<EmbedResult> {
+    const { activeSampleId, transform, samples } = this.store.get();
+    if (!activeSampleId) throw new Error("no active sample");
+    const channels = opts.channels ?? samples[activeSampleId].channels.map((c) => c.name);
+    this.store.set({ status: "computing" });
+    const res = await this.api.embed({
+      sampleId: activeSampleId,
+      channels,
+      method,
+      maxPoints: opts.maxPoints,
+      transform,
+      seed: opts.seed,
+    });
+    this.store.set({ status: "idle" });
+    return res;
   }
 
   /** Save a gate's geometry as a reusable template. */

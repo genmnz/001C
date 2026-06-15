@@ -2,6 +2,10 @@ import type { ChannelMeta, density, stats } from "@joeee/cytometry-core";
 import { Engine } from "./engine.ts";
 import type {
   Bin2DRequest,
+  ClusterRequest,
+  ClusterResult,
+  EmbedRequest,
+  EmbedResult,
   EvaluateGateRequest,
   SampleInfo,
   SpilloverSpec,
@@ -27,6 +31,8 @@ export interface EngineApi {
   ): Promise<{ populationId: string; count: number }>;
   stats(req: StatsRequest): Promise<stats.ChannelStats & stats.Frequency>;
   compensate(sampleId: string, spill?: SpilloverSpec): Promise<void>;
+  cluster(req: ClusterRequest): Promise<ClusterResult>;
+  embed(req: EmbedRequest): Promise<EmbedResult>;
 }
 
 /** Runs the engine synchronously in the current thread. */
@@ -39,6 +45,8 @@ export function createInProcessBackend(engine = new Engine()): EngineApi {
     evaluateGate: async (req) => engine.evaluateGate(req),
     stats: async (req) => engine.stats(req),
     compensate: async (sampleId, spill) => engine.compensate(sampleId, spill),
+    cluster: async (req) => engine.cluster(req),
+    embed: async (req) => engine.embed(req),
   };
 }
 
@@ -79,5 +87,7 @@ export function createWorkerBackend(worker: Worker): EngineApi {
     evaluateGate: (req) => call("evaluateGate", [req]),
     stats: (req) => call("stats", [req]),
     compensate: (sampleId, spill) => call("compensate", [sampleId, spill]),
+    cluster: (req) => call("cluster", [req]),
+    embed: (req) => call("embed", [req]),
   };
 }

@@ -142,3 +142,32 @@ export interface StatsRequest {
   transform?: TransformSpec;
   parentPopId?: string;
 }
+
+export interface ClusterRequest {
+  sampleId: string;
+  channels: string[];
+  method: "kmeans" | "flowsom" | "phenograph";
+  k: number;
+  transform: TransformSpec;
+  downsampleTo?: number;
+  seed?: number;
+}
+export interface ClusterResult {
+  labels: number[];
+  eventIndex: number[];
+  clusterCount: number;
+}
+
+export interface EmbedRequest {
+  sampleId: string;
+  channels: string[];
+  method: "pca" | "umap" | "tsne";
+  maxPoints?: number;
+  transform: TransformSpec;
+  seed?: number;
+}
+export interface EmbedResult {
+  /** 2-D coordinates, one per processed event. */
+  points: number[][];
+  eventIndex: number[];
+}

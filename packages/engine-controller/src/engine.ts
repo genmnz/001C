@@ -1,11 +1,14 @@
 import {
   EventMatrix,
   Population,
+  cluster as coreCluster,
   compensation,
   defaultKernels,
   density,
   evaluate1D,
   evaluate2D,
+  reduce as coreReduce,
+  sample as coreSample,
   stats as coreStats,
   type ChannelMeta,
   type Kernels,
@@ -20,6 +23,10 @@ import {
 } from "./factories.ts";
 import type {
   Bin2DRequest,
+  ClusterRequest,
+  ClusterResult,
+  EmbedRequest,
+  EmbedResult,
   EvaluateGateRequest,
   SampleInfo,
   SpilloverSpec,
@@ -199,5 +206,87 @@ export class Engine {
       : null;
     const fr = coreStats.frequency(pop, parent, m.eventCount);
     return { ...cs, ...fr };
+  }
+
+  /** Selected display columns + an optional downsample population. */
+  private analysisColumns(
+    sampleId: string,
+    channels: string[],
+    transform: import("./protocol.ts").TransformSpec,
+    downsampleTo?: number,
+    seed?: number,
+  ): { columns: Float32Array[]; parent?: Population; eventCount: number } {
+    const m = this.must(sampleId);
+    const columns = channels.map((c) => this.displayColumn(sampleId, c, transform));
+    let parent: Population | undefined;
+    if (downsampleTo && downsampleTo < m.eventCount) {
+      parent = coreSample.downsample(m.eventCount, downsampleTo, { seed: seed ?? 1 });
+    }
+    return { columns, parent, eventCount: m.eventCount };
+  }
+
+  /** Unsupervised clustering; also stores per-cluster populations for stats. */
+  cluster(req: ClusterRequest): ClusterResult {
+    const { columns, parent } = this.analysisColumns(
+      req.sampleId,
+      req.channels,
+      req.transform,
+      req.downsampleTo,
+      req.seed,
+    );
+    const eventIndex: number[] = [];
+    if (parent) parent.forEach((i) => eventIndex.push(i));
+    else for (let i = 0; i < columns[0].length; i++) eventIndex.push(i);
+
+    let labels: Int32Array;
+    if (req.method === "flowsom") {
+      labels = coreCluster.flowSOM(columns, {
+        metaclusters: req.k,
+        seed: req.seed,
+        parent,
+      }).eventMeta;
+    } else if (req.method === "phenograph") {
+      labels = coreCluster.phenograph(columns, { k: req.k, parent }).labels;
+    } else {
+      labels = coreCluster.kmeans(columns, req.k, { seed: req.seed, population: parent }).labels;
+    }
+    const clusterCount = new Set(Array.from(labels)).size;
+
+    // Persist cluster populations (cluster-derived gating / stats).
+    const m = this.must(req.sampleId);
+    const pops = coreCluster.labelsToPopulations(labels, m.eventCount, {
+      eventIndex,
+      nClusters: clusterCount,
+    });
+    pops.forEach((p, c) => this.populations.set(`${req.sampleId}:cl:${c}`, p));
+
+    return { labels: Array.from(labels), eventIndex, clusterCount };
+  }
+
+  /** 2-D embedding of a (subsampled) set of events. */
+  embed(req: EmbedRequest): EmbedResult {
+    const { columns, parent } = this.analysisColumns(
+      req.sampleId,
+      req.channels,
+      req.transform,
+      req.maxPoints ?? 2000,
+      req.seed,
+    );
+    const eventIndex: number[] = [];
+    if (parent) parent.forEach((i) => eventIndex.push(i));
+    else for (let i = 0; i < columns[0].length; i++) eventIndex.push(i);
+
+    let points: number[][];
+    if (req.method === "umap") {
+      points = coreReduce.umap(columns, { seed: req.seed, parent });
+    } else if (req.method === "tsne") {
+      points = coreReduce.tsne(columns, { seed: req.seed, parent });
+    } else {
+      const p = coreReduce.pca(columns, parent);
+      points = eventIndex.map((e) =>
+        p.project(columns.map((col) => col[e]), 2),
+      );
+    }
+    return { points, eventIndex };
   }
 }
