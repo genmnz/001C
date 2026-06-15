@@ -1,53 +1,112 @@
 # joeee
 
-A browser-native, **headless-engine-first** flow cytometry workstation — a
-"FlowJo Lite" you can run with no backend (or a tiny static server). Renders and
-gates millions of events interactively; does the statistics that matter.
+A browser-native, **headless-engine-first** flow cytometry workstation — an
+open-source FlowJo / Cytobank / OMIQ / CytoExploreR / Spectre / CATALYST /
+CytoFlow hybrid that runs with no backend (or a tiny static server). It renders
+and gates millions of events interactively and does real statistics on them.
 
 The defining constraint isn't the framework — it's that you render 1–10M events
-interactively and run real statistics on them on every gate drag. So every
-decision flows from **GPU for pixels, WASM/TS for math, columnar for data**, and
-from one hard rule: **the event data never enters UI/framework state.**
+interactively and run real statistics on every gate drag. So every decision flows
+from **GPU for pixels, WASM/TS for math, columnar for data**, and one hard rule:
+**the event data never enters UI/framework state.**
 
-## What's here
+---
 
-This repo is a working monorepo scaffold. The headless engine is real and
-tested; the rendering and UI layers are real but browser-only (not run in CI).
+## Quick start
+
+```bash
+bun i                 # install everything (workspace deps + dev @types + app deps)
+bun run web           # run the React UI (Vite dev server, cross-origin isolated)
+bun test              # run the test suite (engine + parser + controller)
+bun run both          # web + test-watch together
+```
+
+Other scripts:
+
+| Script | What |
+|---|---|
+| `bun run typecheck` | `tsc --noEmit` across the workspace |
+| `bun run build:web` | build the UI → `app-react/dist` |
+| `bun run build:wasm` | build the Rust SIMD kernels → wasm32 (optional; auto-falls back to TS) |
+| `bun run test:wasm` | Rust kernel tests + the flowutils golden CSV |
+| `bun run golden` | regenerate flowutils-oracle golden values (needs the Python venv) |
+| `bun run serve` | tiny Bun static server that sets COOP/COEP (serves `app-react/dist`) |
+
+`bun run web` opens the **projects hub** → "New analysis" loads a demo sample (or
+drop/open an `.fcs` file) into the **analysis workspace**.
+
+---
+
+## The app (`app-react`)
+
+The initial agnostic-UI wiring over the controller — **the UI never imports the
+engine core**, only `@joeee/engine-controller`.
+
+- **Pages:** projects hub (with `.fcs` drag-drop / file-open) → analysis workspace.
+- **Menu bar:** File · Edit · View · Analysis · Transform · Help, dropdowns wired
+  to operations (open/export/import, undo/redo, compensate, cluster, embed,
+  heatmap, stats, transform).
+- **Operations sidebar:** Data · Compensation · Transform · Gating · Clustering ·
+  Dim-reduction · Statistics · History — every button calls a controller op.
+- **Workspace tabs:**
+  - **Density** — real WebGPU/Canvas2D density plot with pan, wheel-zoom-about-cursor,
+    rectangle-gate drawing, logicle-aware axis ticks, and X/Y channel selectors.
+  - **Embedding** — PCA / UMAP / t-SNE scatter, colored by the last clustering.
+  - **Heatmap** — real cluster × marker enrichment (z-scores).
+  - **Stats** — per-population statistics table.
+- **Inspector:** gate tree + live statistics. **Console:** logs every operation.
+- **Export:** workspace JSON + gated CSV download; Gating-ML 2.0 import.
+
+Swap React for Solid/Svelte without touching the engine — the UI binding is one
+hook (`useSyncExternalStore(controller.store)`).
+
+---
+
+## Repository
 
 ```
 joeee/
 ├── packages/
-│   ├── cytometry-core/      @joeee/cytometry-core   headless engine (TS, 0 deps)
-│   │   ├── transforms/        logicle · hyperlog · asinh · log · linear (all oracle-validated)
-│   │   ├── compensation/      spillover inversion (f64) + apply
-│   │   ├── gating/            rectangle · range · ellipse · polygon · quadrant · boolean
-│   │   ├── stats/             count · MFI/median · percentile · CV · MAD · geomean · freq
-│   │   ├── density/           CPU 2D/1D histogram (source of truth for plots)
-│   │   ├── reduce/            PCA (Jacobi eigen) — DR foundation
-│   │   ├── cluster/           k-means (++ seed) — FlowSOM foundation
-│   │   ├── autogate/          Otsu + density-valley auto-thresholds (openCyto/flowDensity)
-│   │   ├── cleaning/          singlet/debris/saturation/time QC gates
-│   │   ├── kernels/           Kernels seam: TsKernels (default) ⇄ WasmKernels (SIMD)
+│   ├── cytometry-core/      @joeee/cytometry-core    headless engine (TS, 0 deps)
 │   │   ├── matrix.ts          EventMatrix — columnar, SharedArrayBuffer-backed
-│   │   └── population.ts      Population — packed bitset (the core primitive)
-│   ├── fcs/                  @joeee/fcs              defensive FCS 2.0/3.0/3.1 parser (TS, 0 deps)
-│   ├── cytometry-wasm/       joeee-cytometry-wasm    Rust→WASM hot kernels (logicle, gating, compensation)
-│   ├── cytometry-gpu/        @joeee/cytometry-gpu    WebGPU renderer + Canvas2D fallback + WGSL + axis ticks
-│   └── engine-controller/    @joeee/engine-controller the UI-agnostic boundary (store + worker RPC)
-├── app-react/               lightweight Bun + Vite + React shell on the controller
-├── app-web/                 thin reference UI (vanilla TS — no framework)
-├── server/                  tiny Bun static server that sets COOP/COEP
-├── scripts/golden/          flowutils oracle generator for logicle golden values
-└── docs/
-    ├── DERISKING.md          confirmations, criticisms, verified facts, pitfalls
-    ├── ARCHITECTURE.md       data flow and the decisions behind it
-    ├── VALIDATION.md         the logicle oracle strategy (flowutils) + what's open
-    ├── DEVELOPMENT.md        DX: scripts, the WASM seam, COOP/COEP, adding a UI
-    ├── PLOTS.md              plot stack + catalog of plot types and view modes
-    └── ROADMAP.md            honest milestone sequence (the "1 week" reframed)
+│   │   ├── population.ts      Population — packed bitset (the core primitive)
+│   │   ├── kernels/           TsKernels ⇄ WasmKernels seam (SIMD when built)
+│   │   ├── transforms/        logicle · hyperlog · asinh · log · linear · quantile
+│   │   │                       · custom · FlowJo-biex · estimateLogicle (auto-W)
+│   │   ├── compensation/      apply (inv(Sᵀ)) · invert · spillover-from-controls
+│   │   │                       · spectral OLS/NNLS/WLS + autofluorescence · PMT
+│   │   ├── gating/            rectangle · range · ellipse · polygon · quadrant · boolean
+│   │   ├── cleaning/          margin · singlet · debris · saturation · time · flowCut
+│   │   │                       · isolation-forest QC · drift detection
+│   │   ├── stats/             counts · MFI/median · percentile · CV · MAD · geomean
+│   │   │                       · fold-change · positivity · co-expression · diversity
+│   │   │                       · Mann-Whitney · BH-FDR · violin · absolute · enrichment
+│   │   ├── density/           1D/2D histogram · marching-squares contours · hexbin · KDE
+│   │   ├── reduce/            PCA · t-SNE · UMAP · MDS
+│   │   ├── cluster/           k-means(+Rust) · DBSCAN · FlowSOM · GMM · PhenoGraph
+│   │   │                       · hierarchical · consensus · labels→populations
+│   │   ├── graph/             kNN · Louvain (modularity)
+│   │   ├── autogate/          Otsu · density-valley · quantile · tail thresholds
+│   │   ├── diff/              cluster-abundance + rank-based differential abundance
+│   │   ├── normalize/         CytoNorm (per-cluster quantile normalization)
+│   │   ├── cytof/             debarcoding · bead-norm · isotope spillover (NNLS)
+│   │   ├── ml/                logistic regression (IRLS) + accuracy
+│   │   ├── spatial/           neighborhood enrichment (kNN co-occurrence)
+│   │   ├── discovery/         marker enrichment + top-marker cell typing
+│   │   ├── multisample/       sample similarity · population matching · tracking
+│   │   └── sample/            concatenate · downsample · CSV export
+│   ├── fcs/                  @joeee/fcs               defensive FCS 2.0/3.0/3.1 read + write
+│   ├── cytometry-wasm/       joeee-cytometry-wasm     Rust→WASM kernels (logicle, poly, compensate, k-means)
+│   ├── cytometry-gpu/        @joeee/cytometry-gpu     WebGPU + Canvas2D renderer, WGSL, axis ticks, pan/zoom
+│   └── engine-controller/    @joeee/engine-controller the UI-agnostic boundary (store, worker RPC, workspace, Gating-ML import)
+├── app-react/               Bun + Vite + React UI (pages, menus, operations, mock viz)
+├── app-web/                 thin vanilla-TS reference UI + WebGPU smoke test
+├── server/                  tiny Bun static server (COOP/COEP)
+├── scripts/                 dev.ts (web+tests) · golden/ (flowutils oracle generator)
+└── docs/                    see "Documentation" below
 ```
 
-The dependency arrow only points one way:
+The dependency arrow points one way only:
 
 ```
 app-react / app-web ─▶ engine-controller ─▶ cytometry-core
@@ -55,60 +114,65 @@ app-react / app-web ─▶ engine-controller ─▶ cytometry-core
         ╰─▶ cytometry-gpu ────────────────▶ cytometry-core   (cytometry-wasm mirrors core's hot kernels)
 ```
 
-Nothing in `cytometry-core` imports a DOM, a canvas, or a framework. The UI never
+Nothing in `cytometry-core` imports a DOM, a canvas, or a framework; the UI never
 imports `cytometry-core` or touches an `EventMatrix`. That boundary is the
-"agnostic UI" requirement, enforced by module structure rather than convention.
+"agnostic UI" requirement, enforced by module structure.
 
-## Quick start
+---
 
-```bash
-bun i                  # install everything (workspace deps + dev @types + app deps)
-bun run web            # run the React UI (Vite dev server, COOP/COEP isolated)
-bun test               # run the suite (engine, parser, controller, golden, wasm glue)
-bun run both           # web + test-watch together
-bun run typecheck      # tsc --noEmit across the workspace
-bun run build:web      # build the UI -> app-react/dist
-bun run build:wasm     # build the Rust SIMD kernels -> wasm32 (optional; auto-falls back)
-bun run test:wasm      # Rust tests: kernels + flowutils golden CSV
-bun run golden         # regenerate flowutils oracle golden values (needs the venv)
-```
+## Feature coverage
 
-The React UI (`app-react`) is the initial agnostic-UI wiring: a projects hub +
-analysis workspace with a menu bar, an operations sidebar (compensate / transform /
-gate / cluster / dim-reduction / stats / export / undo-redo), tabbed views
-(density · embedding · heatmap · stats) with mock visualization, an inspector
-(gate tree + stats), and a console. Every button calls the controller — the UI
-never imports the engine core.
+The full operation catalog and its status live in **`docs/ENGINE.md`** (headless
+engine §0–§8 + wiring) and **`docs/ADVANCED.md`** (advanced tiers A–N:
+auto-gating, dimensionality reduction, clustering, discovery, differential
+analysis, batch correction, ML, spatial, CyTOF, spectral, multi-sample,
+workspace, collaboration, enterprise).
 
-## Status
+The deterministic engine (FCS I/O → cleaning/QC → compensation → transforms →
+manual gating → populations → stats → density) is complete and oracle-validated.
+The advanced tier covers PCA/t-SNE/UMAP/MDS, k-means/DBSCAN/FlowSOM/GMM/
+PhenoGraph/hierarchical/consensus, differential abundance, CytoNorm, CyTOF
+debarcoding/bead-norm/isotope-spillover, spectral unmixing, logistic ML, spatial
+neighborhoods, Gating-ML 2.0 import, and workspace save/load + undo/redo.
 
-- **Tested headlessly (CI-safe):** ~537 TS tests (≈68k assertions) + 10 Rust tests.
-  Engine covers: FCS read **and write**; cleaning (margin/singlet/debris/saturation);
-  compensation (+ **spillover-from-controls**, **spectral unmixing OLS/NNLS**);
-  transforms (logicle/hyperlog/asinh/log/linear/quantile + **estimateLogicle** auto-W);
-  all gate types; PCA; k-means (+ Rust kernel); Otsu/density-valley auto-gating;
-  comparative/differential stats; density (**marching-squares contours**, **hexbin**);
-  sample concat/downsample/CSV export; and workspace save/load. Tracked in
-  `docs/ENGINE.md` + `docs/ADVANCED.md`; licensing in `docs/LICENSES.md`.
-  Every core operation is **validated against the flowutils external oracle**:
-  logicle (~5e-17) and hyperlog (~3e-17) transforms, compensation
-  (`solve(Sᵀ,·)`, transpose bug caught), and polygon/ellipse gating (0 mismatches
-  over ~18k points). Plus heavy property/fuzz suites (transforms over random
-  params, bitset De Morgan laws at 1M bits, stats vs naive, density conservation
-  at 500k events, a 4-level gate hierarchy at 100k events), the FCS gotchas, the
-  TS⇄WASM kernel parity, and the GPU bin formula vs the CPU histogram.
-- **Runnable:** the React shell builds (Vite, ~57 kB gzipped) with interactive
-  pan / wheel-zoom-about-cursor / rectangle-gate drawing (all on pure,
-  fuzz-tested interaction math) and an SVG gate overlay; the WASM kernels build
-  to wasm32 with SIMD.
-- **Browser-only (real, not in CI):** WebGPU scatter + GPU 2D-histogram density
-  (compute→render buffer sharing; see `app-web/webgpu-smoketest.html`), the
-  Worker host.
-- **Deferred by design:** UMAP / t-SNE / PCA / FlowSOM / PhenoGraph / Leiden /
-  k-means / HDBSCAN; FlowJo `.wsp` import; DuckDB-WASM. See docs/ROADMAP.md.
+**Still open** (heaviest tier): HDBSCAN/spectral clustering, PHATE/EmbedSOM/Isomap,
+edgeR-NB-GLM/GLMM/survival, RandomForest/SVM/NN, FlowJo `.wsp` import, the WASM
+zero-copy path + on-device GPU parity, and the explicitly-last collaboration /
+enterprise tiers.
 
-## Read next
+---
 
-`docs/DERISKING.md` is the opinionated review of the plan that produced this
-scaffold — what holds up, what to rethink, and the pitfalls to wire up on day one
-(cross-origin isolation, the wasm32 4 GB ceiling, the logicle patent).
+## Validation & tests
+
+- **~590 TS tests + Rust tests; `tsc` clean; the app builds.**
+- Every numeric kernel with an oracle is validated against **flowutils** (the
+  FlowKit logicle C extension / Moore–Parks reference): logicle ~5e-17, hyperlog
+  ~3e-17, compensation (`solve(Sᵀ,·)`), polygon/ellipse gating (0 mismatches over
+  ~18k random points). Stochastic methods (t-SNE/UMAP/FlowSOM/PhenoGraph) are
+  validated by neighbor-preservation / purity / modularity, never exact coords.
+- Heavy property/fuzz suites: transforms over random params; bitset De Morgan
+  laws at 1M bits; stats vs naive; density conservation at 500k events; a 4-level
+  gate hierarchy at 100k events; TS⇄WASM kernel parity; GPU-bin == CPU-histogram.
+- See **`docs/VALIDATION.md`** for the oracle strategy and **`docs/LICENSES.md`**
+  for the per-feature port/clean-room ledger (and the Stanford logicle-patent
+  NOTICE).
+
+---
+
+## Documentation
+
+| Doc | Contents |
+|---|---|
+| `docs/ENGINE.md` | headless engine catalog (§0–§8 + WASM/GPU wiring), status-tracked |
+| `docs/ADVANCED.md` | advanced tiers A–N, status-tracked |
+| `docs/ARCHITECTURE.md` | layers, data flow, and the decisions behind them |
+| `docs/DEVELOPMENT.md` | DX: scripts, the WASM seam, COOP/COEP, adding a UI |
+| `docs/VALIDATION.md` | the external-oracle (flowutils) validation strategy |
+| `docs/PLOTS.md` | the rendering stack + catalog of plot types and view modes |
+| `docs/LICENSES.md` | per-feature license ledger; what to port vs clean-room |
+| `docs/DERISKING.md` | the opinionated plan review: what holds up, what to rethink, day-one pitfalls |
+| `docs/ROADMAP.md` | milestone sequence with honest units |
+| `packages/cytometry-wasm/README.md` | building/calling the Rust→WASM kernels |
+
+New here? Read `docs/ARCHITECTURE.md` for the shape, then `docs/DERISKING.md` for
+the why (cross-origin isolation, the wasm32 4 GB ceiling, the logicle patent).

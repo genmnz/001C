@@ -1,7 +1,13 @@
 import type { CSSProperties } from "react";
 
 /** Page 1 — a minimal projects landing that opens into the analysis workspace. */
-export function ProjectsHub({ onOpen }: { onOpen: () => void }) {
+export function ProjectsHub({
+  onOpen,
+  onFile,
+}: {
+  onOpen: () => void;
+  onFile: (file: File) => void;
+}) {
   return (
     <div style={wrap}>
       <div style={{ textAlign: "center" }}>
@@ -15,10 +21,27 @@ export function ProjectsHub({ onOpen }: { onOpen: () => void }) {
           <div style={cardTitle}>＋ New analysis</div>
           <div style={cardSub}>Open the demo project (synthetic two-cluster sample) and start gating.</div>
         </button>
-        <div style={{ ...card, cursor: "default" }}>
+        <label
+          style={card}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => {
+            e.preventDefault();
+            const f = e.dataTransfer?.files?.[0];
+            if (f) onFile(f);
+          }}
+        >
           <div style={cardTitle}>Open FCS…</div>
-          <div style={cardSub}>Drag an .fcs file in (parser ready; file-picker wiring is next).</div>
-        </div>
+          <div style={cardSub}>Click to choose, or drag an .fcs file here.</div>
+          <input
+            type="file"
+            accept=".fcs"
+            style={{ display: "none" }}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) onFile(f);
+            }}
+          />
+        </label>
         <div style={{ ...card, cursor: "default" }}>
           <div style={cardTitle}>Recent</div>
           <div style={cardSub}>No recent projects yet.</div>

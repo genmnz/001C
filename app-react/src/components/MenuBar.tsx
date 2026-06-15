@@ -45,6 +45,7 @@ export function MenuBar({
       { label: "Embed — PCA", on: () => void actions.embed("pca") },
       { label: "Embed — UMAP", on: () => void actions.embed("umap") },
       { label: "Embed — t-SNE", on: () => void actions.embed("tsne") },
+      { label: "Cluster heatmap", on: () => void actions.heatmap() },
       { label: "Compute statistics", on: () => void actions.computeStats() },
     ],
     Transform: [

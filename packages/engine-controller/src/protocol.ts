@@ -171,3 +171,10 @@ export interface EmbedResult {
   points: number[][];
   eventIndex: number[];
 }
+
+export interface EnrichmentResult {
+  /** cluster × marker z-scores. */
+  z: number[][];
+  markers: string[];
+  clusterCount: number;
+}

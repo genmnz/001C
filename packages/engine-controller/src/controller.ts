@@ -12,6 +12,7 @@ import {
 import type {
   ClusterResult,
   EmbedResult,
+  EnrichmentResult,
   GateNode,
   GateSpec,
   GateTemplate,
@@ -288,6 +289,33 @@ export class EngineController {
     });
     this.store.set({ status: "idle" });
     return res;
+  }
+
+  /** Cluster + per-cluster × marker enrichment z-scores (for the heatmap). */
+  async markerEnrichment(
+    method: "kmeans" | "flowsom" | "phenograph",
+    k: number,
+    opts: { channels?: string[]; downsampleTo?: number; seed?: number } = {},
+  ): Promise<EnrichmentResult> {
+    const { activeSampleId, transform, samples } = this.store.get();
+    if (!activeSampleId) throw new Error("no active sample");
+    const channels = opts.channels ?? samples[activeSampleId].channels.map((c) => c.name);
+    return this.api.markerEnrichment({
+      sampleId: activeSampleId,
+      channels,
+      method,
+      k,
+      transform,
+      downsampleTo: opts.downsampleTo,
+      seed: opts.seed,
+    });
+  }
+
+  /** Export the active sample (optionally one population) as CSV text. */
+  async exportSampleCsv(populationId?: string): Promise<string> {
+    const { activeSampleId } = this.store.get();
+    if (!activeSampleId) throw new Error("no active sample");
+    return this.api.exportCsv({ sampleId: activeSampleId, populationId });
   }
 
   /** Save a gate's geometry as a reusable template. */

@@ -22,7 +22,9 @@ type Method =
   | "stats"
   | "compensate"
   | "cluster"
-  | "embed";
+  | "embed"
+  | "markerEnrichment"
+  | "exportCsv";
 
 interface RpcMessage {
   id: number;

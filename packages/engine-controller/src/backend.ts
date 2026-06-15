@@ -6,6 +6,7 @@ import type {
   ClusterResult,
   EmbedRequest,
   EmbedResult,
+  EnrichmentResult,
   EvaluateGateRequest,
   SampleInfo,
   SpilloverSpec,
@@ -33,6 +34,8 @@ export interface EngineApi {
   compensate(sampleId: string, spill?: SpilloverSpec): Promise<void>;
   cluster(req: ClusterRequest): Promise<ClusterResult>;
   embed(req: EmbedRequest): Promise<EmbedResult>;
+  markerEnrichment(req: ClusterRequest): Promise<EnrichmentResult>;
+  exportCsv(req: { sampleId: string; populationId?: string }): Promise<string>;
 }
 
 /** Runs the engine synchronously in the current thread. */
@@ -47,6 +50,8 @@ export function createInProcessBackend(engine = new Engine()): EngineApi {
     compensate: async (sampleId, spill) => engine.compensate(sampleId, spill),
     cluster: async (req) => engine.cluster(req),
     embed: async (req) => engine.embed(req),
+    markerEnrichment: async (req) => engine.markerEnrichment(req),
+    exportCsv: async (req) => engine.exportCsv(req),
   };
 }
 
@@ -89,5 +94,7 @@ export function createWorkerBackend(worker: Worker): EngineApi {
     compensate: (sampleId, spill) => call("compensate", [sampleId, spill]),
     cluster: (req) => call("cluster", [req]),
     embed: (req) => call("embed", [req]),
+    markerEnrichment: (req) => call("markerEnrichment", [req]),
+    exportCsv: (req) => call("exportCsv", [req]),
   };
 }

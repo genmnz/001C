@@ -2,13 +2,15 @@ import {
   type ClusterResult,
   type EmbedResult,
   type EngineController,
+  type EnrichmentResult,
 } from "@joeee/engine-controller";
-import { useState, type CSSProperties } from "react";
+import { useState, type CSSProperties, type DragEvent } from "react";
 import type { Actions, Tab } from "./actions.ts";
+import { AxisBar } from "./components/AxisBar.tsx";
 import { ConsolePanel } from "./components/ConsolePanel.tsx";
 import { EmbeddingPlot } from "./components/EmbeddingPlot.tsx";
 import { GateTree } from "./components/GateTree.tsx";
-import { HeatmapMock } from "./components/HeatmapMock.tsx";
+import { HeatmapPlot } from "./components/HeatmapPlot.tsx";
 import { MenuBar } from "./components/MenuBar.tsx";
 import { OperationsPanel } from "./components/OperationsPanel.tsx";
 import { PlotCanvas } from "./components/PlotCanvas.tsx";
@@ -17,6 +19,7 @@ import { StatsPanel } from "./components/StatsPanel.tsx";
 import { StatsTable } from "./components/StatsTable.tsx";
 import { synthClusters } from "./synth.ts";
 import { useWorkspace } from "./useController.ts";
+import { download } from "./util/download.ts";
 
 const SAMPLE = "demo.fcs";
 
@@ -27,6 +30,7 @@ export function App({ controller }: { controller: EngineController }) {
   const [log, setLog] = useState<string[]>([]);
   const [embedding, setEmbedding] = useState<EmbedResult | null>(null);
   const [clusters, setClusters] = useState<ClusterResult | null>(null);
+  const [heatmap, setHeatmap] = useState<EnrichmentResult | null>(null);
 
   const addLog = (m: string) =>
     setLog((l) => [`${new Date().toLocaleTimeString()}  ${m}`, ...l].slice(0, 200));
@@ -43,6 +47,19 @@ export function App({ controller }: { controller: EngineController }) {
       controller.setTransform({ kind: "logicle", T: 262144, W: 0.5, M: 4.5, A: 0 });
       addLog(`Loaded ${SAMPLE} (80,000 events, ${channels.length} channels)`);
       setPage("workspace");
+    },
+    loadFile: async (file: File) => {
+      try {
+        const buf = await file.arrayBuffer();
+        const info = await controller.loadSample(file.name, buf);
+        addLog(
+          `Loaded ${file.name} (${info.eventCount.toLocaleString()} events, ${info.channels.length} channels)` +
+            (info.warnings?.length ? ` · ${info.warnings.length} warning(s)` : ""),
+        );
+        setPage("workspace");
+      } catch (e) {
+        addLog(`load failed: ${String(e)}`);
+      }
     },
     home: () => setPage("projects"),
     compensate: async () => {
@@ -74,6 +91,12 @@ export function App({ controller }: { controller: EngineController }) {
       setTab("embedding");
       addLog(`${method.toUpperCase()}: embedded ${r.points.length.toLocaleString()} events`);
     },
+    heatmap: async () => {
+      const r = await controller.markerEnrichment("flowsom", 8, { downsampleTo: 2000, seed: 1 });
+      setHeatmap(r);
+      setTab("heatmap");
+      addLog(`Cluster heatmap: ${r.clusterCount} clusters × ${r.markers.length} markers`);
+    },
     computeStats: async () => {
       const { y } = xy();
       for (const g of controller.store.get().gates) await controller.refreshStats(g.id, y);
@@ -82,9 +105,14 @@ export function App({ controller }: { controller: EngineController }) {
     },
     exportWorkspace: () => {
       const doc = controller.exportWorkspace();
-      addLog(`Exported workspace JSON (${doc.gates.length} gates, ${doc.samples.length} samples)`);
+      download("workspace.json", JSON.stringify(doc, null, 2), "application/json");
+      addLog(`Downloaded workspace.json (${doc.gates.length} gates, ${doc.samples.length} samples)`);
     },
-    exportCsv: () => addLog("Export gated CSV — engine op core/sample.exportCsv (wire to download)"),
+    exportCsv: async () => {
+      const csv = await controller.exportSampleCsv();
+      download("events.csv", csv, "text/csv");
+      addLog(`Downloaded events.csv (${csv.split("\\n").length - 1} rows)`);
+    },
     importGatingML: async () => {
       const { x, y } = xy();
       const xml = `<gating:Gating-ML xmlns:gating="g" xmlns:data-type="d"><gating:RectangleGate gating:id="imp">
@@ -109,11 +137,18 @@ export function App({ controller }: { controller: EngineController }) {
     setTab,
   };
 
-  if (page === "projects") return <ProjectsHub onOpen={actions.openDemo} />;
+  if (page === "projects")
+    return <ProjectsHub onOpen={actions.openDemo} onFile={actions.loadFile} />;
+
+  const onDrop = (e: DragEvent) => {
+    e.preventDefault();
+    const f = e.dataTransfer?.files?.[0];
+    if (f) void actions.loadFile(f);
+  };
 
   const sample = ws.activeSampleId ? ws.samples[ws.activeSampleId] : null;
   return (
-    <div style={shell}>
+    <div style={shell} onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
       <MenuBar actions={actions} canUndo={controller.canUndo()} canRedo={controller.canRedo()} />
       <div style={body}>
         <OperationsPanel actions={actions} ws={ws} />
@@ -130,9 +165,14 @@ export function App({ controller }: { controller: EngineController }) {
             </span>
           </div>
           <div style={stage}>
-            {tab === "density" && <PlotCanvas controller={controller} />}
+            {tab === "density" && (
+              <div>
+                <AxisBar controller={controller} />
+                <PlotCanvas controller={controller} />
+              </div>
+            )}
             {tab === "embedding" && <EmbeddingPlot embedding={embedding} clusters={clusters} />}
-            {tab === "heatmap" && <HeatmapMock clusters={clusters} />}
+            {tab === "heatmap" && <HeatmapPlot data={heatmap} />}
             {tab === "stats" && <StatsTable controller={controller} />}
           </div>
         </div>

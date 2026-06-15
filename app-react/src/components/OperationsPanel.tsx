@@ -46,6 +46,7 @@ export function OperationsPanel({ actions, ws }: { actions: Actions; ws: Workspa
 
       <Section title="Statistics">
         <Op onClick={() => void actions.computeStats()}>Compute stats</Op>
+        <Op onClick={() => void actions.heatmap()}>Cluster heatmap</Op>
       </Section>
 
       <Section title="History">

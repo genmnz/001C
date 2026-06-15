@@ -3,14 +3,16 @@ export type Tab = "density" | "embedding" | "heatmap" | "stats";
 
 export interface Actions {
   openDemo(): Promise<void> | void;
+  loadFile(file: File): Promise<void>;
   home(): void;
   compensate(): Promise<void>;
   addPolygon(): Promise<void>;
   cluster(method: "kmeans" | "flowsom" | "phenograph"): Promise<void>;
   embed(method: "pca" | "umap" | "tsne"): Promise<void>;
+  heatmap(): Promise<void>;
   computeStats(): Promise<void>;
   exportWorkspace(): void;
-  exportCsv(): void;
+  exportCsv(): Promise<void>;
   importGatingML(): Promise<void>;
   setTransform(kind: "logicle" | "asinh" | "linear"): void;
   undo(): void;

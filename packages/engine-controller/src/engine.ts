@@ -5,6 +5,7 @@ import {
   compensation,
   defaultKernels,
   density,
+  discovery as coreDiscovery,
   evaluate1D,
   evaluate2D,
   reduce as coreReduce,
@@ -27,6 +28,7 @@ import type {
   ClusterResult,
   EmbedRequest,
   EmbedResult,
+  EnrichmentResult,
   EvaluateGateRequest,
   SampleInfo,
   SpilloverSpec,
@@ -288,5 +290,33 @@ export class Engine {
       );
     }
     return { points, eventIndex };
+  }
+
+  /** CSV of a population's (or the whole sample's) raw events. */
+  exportCsv(req: { sampleId: string; populationId?: string }): string {
+    const m = this.must(req.sampleId);
+    const pop = req.populationId ? this.populations.get(req.populationId) : undefined;
+    return coreSample.exportCsv(m, pop);
+  }
+
+  /** Cluster, then per-cluster × marker enrichment z-scores (for the heatmap). */
+  markerEnrichment(req: ClusterRequest): EnrichmentResult {
+    const cl = this.cluster(req);
+    const display = req.channels.map((c) =>
+      this.displayColumn(req.sampleId, c, req.transform),
+    );
+    const sub = display.map((col) => Float64Array.from(cl.eventIndex, (e) => col[e]));
+    const enr = coreDiscovery.markerEnrichment(
+      sub,
+      Int32Array.from(cl.labels),
+      cl.clusterCount,
+    );
+    const z: number[][] = [];
+    for (let r = 0; r < cl.clusterCount; r++) {
+      const row: number[] = [];
+      for (let m = 0; m < req.channels.length; m++) row.push(enr.z[r * req.channels.length + m]);
+      z.push(row);
+    }
+    return { z, markers: req.channels, clusterCount: cl.clusterCount };
   }
 }
