@@ -107,3 +107,7 @@ export function timeWindowMask(
 }
 
 export { flowCutQC } from "./qc.ts";
+export { isolationForest } from "./isolation.ts";
+export type { IsolationForestResult } from "./isolation.ts";
+export { detectDrift } from "./drift.ts";
+export type { DriftReport } from "./drift.ts";

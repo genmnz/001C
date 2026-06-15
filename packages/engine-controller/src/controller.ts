@@ -12,6 +12,7 @@ import {
 import type {
   GateNode,
   GateSpec,
+  GateTemplate,
   SampleInfo,
   SpilloverSpec,
   TransformSpec,
@@ -26,10 +27,13 @@ function initialState(): WorkspaceState {
     axes: { x: "", y: "" },
     transform: { kind: "logicle" },
     gates: [],
+    templates: [],
     stats: {},
     status: "idle",
   };
 }
+
+let templateCounter = 0;
 
 let gateCounter = 0;
 
@@ -237,6 +241,42 @@ export class EngineController {
         },
       },
     }));
+  }
+
+  /** Save a gate's geometry as a reusable template. */
+  saveGateTemplate(gateId: string, name?: string): GateTemplate {
+    const node = this.store.get().gates.find((g) => g.id === gateId);
+    if (!node) throw new Error(`unknown gate ${gateId}`);
+    const tmpl: GateTemplate = {
+      id: `tmpl_${++templateCounter}`,
+      name: name ?? `${node.name} template`,
+      spec: node.spec,
+    };
+    this.store.set((s) => ({ templates: [...s.templates, tmpl] }));
+    return tmpl;
+  }
+
+  /** Apply a saved template as a new gate, optionally remapping its channels. */
+  async applyGateTemplate(
+    templateId: string,
+    opts: {
+      channels?: { x?: string; y?: string; channel?: string };
+      parentId?: string | null;
+      name?: string;
+    } = {},
+  ): Promise<GateNode> {
+    const tmpl = this.store.get().templates.find((t) => t.id === templateId);
+    if (!tmpl) throw new Error(`unknown template ${templateId}`);
+    let spec: GateSpec = tmpl.spec;
+    const ch = opts.channels;
+    if (ch) {
+      if (spec.kind === "range" && ch.channel) {
+        spec = { ...spec, channel: ch.channel };
+      } else if (spec.kind !== "range") {
+        spec = { ...spec, xChannel: ch.x ?? spec.xChannel, yChannel: ch.y ?? spec.yChannel };
+      }
+    }
+    return this.addGate(spec, { name: opts.name ?? tmpl.name, parentId: opts.parentId });
   }
 
   /** Serialize the analysis (gates, transform, axes, sample metadata) to a doc. */

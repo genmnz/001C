@@ -8,3 +8,5 @@ export { HyperlogTransform } from "./hyperlog.ts";
 export { QuantileTransform } from "./quantile.ts";
 export { CustomTransform } from "./custom.ts";
 export { estimateLogicle, estimateLogicleW } from "./estimateLogicle.ts";
+export { flowJoBiex } from "./biexponential.ts";
+export type { FlowJoBiexParams } from "./biexponential.ts";

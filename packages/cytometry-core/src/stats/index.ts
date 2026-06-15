@@ -24,3 +24,4 @@ export type {
 } from "./comparative.ts";
 export { violin, absoluteConcentration } from "./summary.ts";
 export type { ViolinData } from "./summary.ts";
+export { enrichmentScore } from "./summary.ts";

@@ -86,12 +86,20 @@ export interface GateNode {
  * matrices or population bitsets. Those live in the engine/worker. This is the
  * rule that keeps interactivity alive at millions of events.
  */
+/** A reusable gate (geometry) saveable and applicable across samples/axes. */
+export interface GateTemplate {
+  id: string;
+  name: string;
+  spec: GateSpec;
+}
+
 export interface WorkspaceState {
   samples: Record<string, SampleInfo>;
   activeSampleId: string | null;
   axes: { x: string; y: string };
   transform: TransformSpec;
   gates: GateNode[];
+  templates: GateTemplate[];
   /** Computed stats keyed by `${populationId}:${channel}`. */
   stats: Record<string, ChannelStatsResult>;
   status: "idle" | "loading" | "computing";

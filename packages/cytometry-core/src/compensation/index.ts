@@ -13,3 +13,4 @@ export {
   appendAutofluorescence,
   nnls,
 } from "./unmix.ts";
+export { pmtNormalize, detectorCorrection } from "./pmt.ts";

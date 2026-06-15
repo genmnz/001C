@@ -45,3 +45,20 @@ export function absoluteConcentration(
   if (beadEvents <= 0) return 0;
   return (populationEvents / beadEvents) * beadsPerMicroliter;
 }
+
+/**
+ * Enrichment score = fold over-representation of a positive fraction in a
+ * population vs a reference (parent/total): (popPos/popTotal)/(refPos/refTotal).
+ * > 1 enriched, < 1 depleted.
+ */
+export function enrichmentScore(
+  popPositive: number,
+  popTotal: number,
+  refPositive: number,
+  refTotal: number,
+): number {
+  const refFrac = refTotal > 0 ? refPositive / refTotal : 0;
+  if (refFrac === 0) return popPositive > 0 ? Infinity : 1;
+  const popFrac = popTotal > 0 ? popPositive / popTotal : 0;
+  return popFrac / refFrac;
+}

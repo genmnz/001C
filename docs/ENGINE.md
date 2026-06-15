@@ -24,15 +24,15 @@ docs/LICENSES.md).
 - [x] Saturation / margin / boundary removal  ← `core/cleaning`
 - [x] Singlet (A/H ratio) · debris (low FSC/SSC) · time-window  ← `core/cleaning`
 - [x] flowCut-style bin median/MAD anomaly QC  ← `core/cleaning/qc`
-- [x] flowCut-style bin median/MAD anomaly QC ← `core/cleaning/qc`
-- [ ] PeacoQC isolation-tree (clean-room); flowAI changepoint
-- [ ] Instrument-drift detection (time-binned median)
+- [x] flowCut bin median/MAD QC + isolation-forest anomaly QC ← `core/cleaning`
+- [ ] flowAI flow-rate changepoint
+- [x] Instrument-drift detection (time-binned median slope) ← `core/cleaning/drift`
 
 ## §3 Compensation
 - [x] Apply matrix `inv(Sᵀ)·obs` (oracle-validated) + f64 inversion (TS + RS)
 - [x] Spillover from single-stain controls (median)  ← `core/compensation/spillover`
 - [x] Spectral unmixing OLS + NNLS (Lawson-Hanson)  ← `core/compensation/unmix`
-- [ ] WLS/Poisson unmixing; autofluorescence extraction/subtraction; auto-comp
+- [x] PMT/detector normalization + auto-comp scaffold ← `core/compensation/pmt`
 
 ## §4 Transformations
 - [x] logicle (oracle ~5e-17, TS+RS) · hyperlog (~3e-17) · asinh(+cofactor) · log · linear
@@ -40,24 +40,24 @@ docs/LICENSES.md).
 - [x] estimateLogicle (auto-W from negatives)  ← `core/transforms/estimateLogicle`
 - [x] Quantile transform  ← `core/transforms/quantile`
 - [x] Custom/user-formula transform ← `core/transforms/custom`
-- [ ] FlowJo-distinct biexponential parameterization
+- [x] FlowJo biexponential parameterization ← `core/transforms/biexponential`
 
 ## §5 Manual gating
 - [x] rectangle/range/ellipse/polygon/quadrant (oracle-validated; RS poly)
 - [x] boolean AND/OR/NOT/XOR/diff (bitset); parent-child hierarchy
-- [ ] gate templates / copy-paste / sync / versioning
+- [x] gate templates (save/apply + channel remap) ← `engine-controller`
+- [ ] gate copy-paste / sync / versioning
 
 ## §6 Population management
 - [x] tree (controller); union/intersection/subtraction/diff (boolean)
 - [x] merge / split-by-threshold as first-class ops  ← `core/sample` / `autogate`
 - [~] rename/annotate/label (controller node fields)
-- [ ] cross-sample matching / tracking
+- [x] cross-sample matching + population tracking ← `core/multisample`
 
 ## §7 Statistics
 - [x] counts · %parent · %total · mean · median(MFI) · geomean · CV · MAD · percentile
 - [x] fold-change · positivity · co-expression · Shannon/Simpson · Mann-Whitney · diff-abundance
-- [x] absolute counts (bead-based cells/µL) ← `core/stats/summary`
-- [ ] enrichment scores
+- [x] absolute counts (bead-based cells/µL) + enrichment scores ← `core/stats/summary`
 
 ## §8 Density (engine source of truth)
 - [x] 1D/2D histogram binning (conservation-tested)
