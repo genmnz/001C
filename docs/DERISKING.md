@@ -156,6 +156,71 @@ Sources: [caniuse WebGPU](https://caniuse.com/webgpu) ·
 algorithms are small enough to port cleanly to Rust (memory safety + SIMD + one
 toolchain). Port the math, preserve the BSD/Stanford attributions.
 
+## Grounded hot-path audit (July 2026)
+
+The table above is the *policy*; this is the audit that maps it onto the code as
+it stands, so nobody re-litigates "should this be Rust?" per file. Three framing
+rules first, because they matter more than any single port:
+
+- **Memory layout beats language.** The dominant lever is not Rust, it's *not
+  copying the event matrix*. ~30M events × ~50 channels × 4 B ≈ **6 GB** blows
+  the wasm32 4 GB ceiling (Memory64 still absent from Safari in 2026). The matrix
+  lives in a JS `SharedArrayBuffer`; kernels take *slice pointers* into it, never
+  a copy. Already built this way: `fcs/data.ts` allocates via `opts.alloc` (the
+  SAB), and the Rust ABI (`cytometry-wasm/src/lib.rs`) takes `*mut f32, len`
+  views. A naïve "hand the array to WASM" would be both slower and OOM-prone.
+- **"Slow in TS" ≠ "port to Rust."** Some hot files are *algorithm* problems
+  (quadratic; Rust only buys a constant factor) and some are *GPU* problems
+  (data-parallel over pixels/bins; WGSL, not WASM). Sort those out before porting.
+- **Per-event vs one-time.** Only code that runs *once per event across all N* is
+  a SIMD kernel. The f×f linear algebra that sets it up (matrix inverses) runs
+  once per operation — leave it in TS.
+
+**Tier 1 — port now (per-event loops over the full matrix).** These recompute
+over millions of rows on every transform/gate/compensate and are where SIMD +
+no-boxing pays:
+
+| File / site | Operation | Note |
+|---|---|---|
+| `transforms/logicle.ts` (`logicleScaleInto` kernel) | f64 root-find per value per column | Keystone; render/gating/stats all depend on it. Mirrored in `wasm/src/logicle.rs`. |
+| `gating/polygon.ts` (`polygonMask` kernel) | point-in-polygon over all events | Hottest interactive path — recomputed every mouse-move on gate drag. `wasm/src/gate.rs`. |
+| `compensation/unmix.ts:41` `unmixOLS`, `apply.ts`, `spillover.ts` | mat-vec `P·x` per event (d≈50) | Only the per-event *apply* is the kernel; `unmixMatrix`/`nnls`/`invertSquare` are one-time f×f → keep in TS. |
+| `stats/descriptive.ts:34-103` | median / percentile / MAD per gate | Cost is the per-gate `Float64Array.sort` (lines 48, 96, 102). Rust win = `select_nth_unstable` (quickselect), not a faster sort. |
+| `fcs/data.ts:123-149` | decode + row→column transpose | 30M×50 ≈ 1.5B iters of `switch` + `DataView.get*` (slow in JS). Stays on the JS heap for memory reasons, but the inner loop over a SAB slice is a legit Rust candidate. |
+
+**Tier 2 — fix the algorithm first, then maybe Rust.** Marked `Rust→WASM
+candidate` in-code, but the complexity is the real problem:
+
+- `graph/knn.ts:36-58` — **O(N²·d)** brute force *plus* a full `Array.sort` of N
+  per row. At 1M points that's ~10¹² ops; Rust won't save you. Needs
+  kd-tree / HNSW / approximate NN. Currently gated behind deferred clustering/DR.
+- `density/kde.ts` (`:65`, `:122`) — grid×N Gaussian evals → GPU, or Rust+SIMD
+  `exp`, or FFT-binned KDE (O(N + grid·log grid)).
+- `reduce/{umap,tsne}.ts`, `cluster/{flowsom,gmm,kmeans}.ts`, `graph/louvain.ts`
+  — iterative batch/background jobs, deferred. `kmeans_assign` is already stubbed
+  in `wasm/src/lib.rs:81`; the rest are not on the interactive path.
+
+**Belongs on the GPU, not Rust.** `density/{histogram2d,contour,hexbin}.ts` and
+the whole `cytometry-gpu` package. Architecture is deliberate: the CPU
+2D-histogram in core is the *tested source of truth*, the WebGPU compute pass is
+an accelerated mirror that must produce identical bins (see §"What I'd rethink"
+#2). Rust here is redundant — the parallelism target is the GPU, with TS as
+oracle + Canvas2D fallback.
+
+**Stays in TS (correctly).** FCS header/TEXT/offset orchestration
+(`data.ts:35-60`); closed-form `asinh`/`log`/`linear`; one-time inverses
+(`compensation/invert.ts`); controller/store/protocol/workspace + undo/redo;
+Gating-ML/XML interop; and boolean gate combination (`gating/boolean.ts`) which
+is already optimal as word-wise `Population` bitset ops.
+
+**Build/wire order.** The seam exists (`kernels/`: `TsKernels` ⇄ `WasmKernels`,
+loaded via `loadWasmKernels()` with a TS fallback). To light it up:
+`bun run build:wasm`, hand the engine `WasmKernels`, benchmark on a synthetic
+10M-event matrix. Priority: (1) logicle, (2) point-in-polygon, (3) compensation
+apply, (4) percentile/median/MAD, (5) parse decode+transpose. The three crates
+already present (`logicle`, `gate`, `compensate`) are exactly the right first
+surface.
+
 ## Caveats
 
 - The logicle here passes round-trip, monotonicity, and analytic anchors in both

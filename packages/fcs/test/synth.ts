@@ -16,7 +16,9 @@ export interface SynthInput {
   channels: SynthChannel[];
   /** Per-channel raw value arrays (all the same length = event count). */
   columns: number[][];
-  datatype: "I" | "F" | "D";
+  datatype: "I" | "F" | "D" | "A";
+  /** For $DATATYPE A: pack values fixed-width ($PnB chars) instead of space-delimited. */
+  asciiFixedWidth?: boolean;
   littleEndian?: boolean;
   delimiter?: string;
   /** Write 0 for the HEADER data offsets, forcing use of $BEGINDATA/$ENDDATA. */
@@ -45,7 +47,21 @@ export function writeFcs(input: SynthInput): Uint8Array {
 
   const bytesPer = channels.map((c) => c.bits / 8);
   const stride = bytesPer.reduce((a, b) => a + b, 0);
-  const dataLen = eventCount * stride;
+
+  // ASCII payload, built up-front so $BEGINDATA/$ENDDATA account for its length.
+  let asciiText = "";
+  if (datatype === "A") {
+    const parts: string[] = [];
+    for (let e = 0; e < eventCount; e++)
+      for (let p = 0; p < par; p++) {
+        const s = String(columns[p][e]);
+        // Zero-pad (no whitespace) so fixed-width fields pack with no delimiter,
+        // exercising the parser's fixed-width fallback rather than token-splitting.
+        parts.push(input.asciiFixedWidth ? s.padStart(channels[p].bits, "0") : s);
+      }
+    asciiText = input.asciiFixedWidth ? parts.join("") : parts.join(" ");
+  }
+  const dataLen = datatype === "A" ? strBytes(asciiText).length : eventCount * stride;
 
   const byteord = little
     ? datatype === "D"
@@ -117,24 +133,29 @@ export function writeFcs(input: SynthInput): Uint8Array {
   const headerBytes = strBytes(header);
 
   // DATA.
-  const dataBuf = new ArrayBuffer(dataLen);
-  const dv = new DataView(dataBuf);
-  let off = 0;
-  for (let e = 0; e < eventCount; e++) {
-    for (let p = 0; p < par; p++) {
-      const v = columns[p][e];
-      if (datatype === "I") {
-        if (bytesPer[p] === 2) dv.setUint16(off, v & 0xffff, little);
-        else dv.setUint32(off, v >>> 0, little);
-      } else if (datatype === "F") {
-        dv.setFloat32(off, v, little);
-      } else {
-        dv.setFloat64(off, v, little);
+  let dataBytes: Uint8Array;
+  if (datatype === "A") {
+    dataBytes = strBytes(asciiText);
+  } else {
+    const dataBuf = new ArrayBuffer(dataLen);
+    const dv = new DataView(dataBuf);
+    let off = 0;
+    for (let e = 0; e < eventCount; e++) {
+      for (let p = 0; p < par; p++) {
+        const v = columns[p][e];
+        if (datatype === "I") {
+          if (bytesPer[p] === 2) dv.setUint16(off, v & 0xffff, little);
+          else dv.setUint32(off, v >>> 0, little);
+        } else if (datatype === "F") {
+          dv.setFloat32(off, v, little);
+        } else {
+          dv.setFloat64(off, v, little);
+        }
+        off += bytesPer[p];
       }
-      off += bytesPer[p];
     }
+    dataBytes = new Uint8Array(dataBuf);
   }
-  const dataBytes = new Uint8Array(dataBuf);
 
   const out = new Uint8Array(58 + textBytes.length + dataBytes.length);
   out.set(headerBytes, 0);

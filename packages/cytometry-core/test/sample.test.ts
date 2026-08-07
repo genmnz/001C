@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { EventMatrix } from "../src/matrix.ts";
 import {
   concatenate,
+  densityDependentDownsample,
   downsample,
   exportCsv,
   systematicDownsample,
@@ -44,6 +45,52 @@ describe("downsample", () => {
     expect(p.count()).toBe(10);
     expect(p.get(0)).toBe(true);
     expect(p.get(10)).toBe(true);
+  });
+});
+
+describe("densityDependentDownsample", () => {
+  // A dense blob of 400 points around (0,0) plus a rare cluster of 40 points
+  // far away at (50,50). SPADE downsampling should thin the dense blob far more
+  // aggressively than the rare cluster, boosting the rare fraction.
+  function twoBlobs() {
+    const rng = (() => {
+      let a = 12345;
+      return () => {
+        a = (a + 0x6d2b79f5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    })();
+    const xs: number[] = [];
+    const ys: number[] = [];
+    const dense = 400;
+    const rare = 40;
+    for (let i = 0; i < dense; i++) {
+      xs.push((rng() - 0.5) * 2);
+      ys.push((rng() - 0.5) * 2);
+    }
+    for (let i = 0; i < rare; i++) {
+      xs.push(50 + (rng() - 0.5) * 2);
+      ys.push(50 + (rng() - 0.5) * 2);
+    }
+    return { xs, ys, dense, rare };
+  }
+
+  test("keeps rare cells at a higher rate than dense cells; deterministic", () => {
+    const { xs, ys, dense, rare } = twoBlobs();
+    const p1 = densityDependentDownsample([xs, ys], { seed: 3 });
+    const p2 = densityDependentDownsample([xs, ys], { seed: 3 });
+    expect(Array.from(p1.toMask())).toEqual(Array.from(p2.toMask())); // deterministic
+
+    let keptDense = 0;
+    let keptRare = 0;
+    p1.forEach((i) => (i < dense ? keptDense++ : keptRare++));
+
+    expect(p1.count()).toBeLessThan(dense + rare); // actually downsampled
+    const denseFrac = keptDense / dense;
+    const rareFrac = keptRare / rare;
+    expect(rareFrac).toBeGreaterThan(denseFrac); // rare population preserved
   });
 });
 

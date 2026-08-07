@@ -61,31 +61,51 @@ interface Pending {
 }
 
 /**
- * Drives an engine hosted in a Web Worker via RPC. Construct the worker in the
- * app (so the bundler wires the module URL) and hand it here:
+ * Drives an engine hosted in a Web Worker via RPC. The app owns the worker entry
+ * (a one-line module that calls `installEngineWorker()` from
+ * `@joeee/engine-controller/worker`) so the bundler resolves a relative URL:
  *
- *   const worker = new Worker(new URL("@joeee/engine-controller/worker", import.meta.url), { type: "module" });
+ *   // engine.worker.ts
+ *   import { installEngineWorker } from "@joeee/engine-controller/worker";
+ *   installEngineWorker();
+ *
+ *   // main.ts
+ *   const worker = new Worker(new URL("./engine.worker.ts", import.meta.url), { type: "module" });
  *   const api = createWorkerBackend(worker);
  */
 export function createWorkerBackend(worker: Worker): EngineApi {
   let seq = 0;
   const pending = new Map<number, Pending>();
-  worker.onmessage = (ev: MessageEvent) => {
-    const { id, ok, result, error } = ev.data;
+  // addEventListener (not onmessage=) so the app can also listen for the
+  // worker's "ready" event without clobbering this RPC handler.
+  worker.addEventListener("message", (ev: MessageEvent) => {
+    const { id, ok, result, error } = ev.data ?? {};
+    if (typeof id !== "number") return; // non-RPC message (e.g. "ready")
     const p = pending.get(id);
     if (!p) return;
     pending.delete(id);
     if (ok) p.resolve(result);
     else p.reject(new Error(error));
-  };
-  const call = <T>(method: string, args: unknown[]): Promise<T> =>
+  });
+  const call = <T>(
+    method: string,
+    args: unknown[],
+    transfer: Transferable[] = [],
+  ): Promise<T> =>
     new Promise<T>((resolve, reject) => {
       const id = ++seq;
       pending.set(id, { resolve: resolve as (v: unknown) => void, reject });
-      worker.postMessage({ id, method, args });
+      worker.postMessage({ id, method, args }, transfer);
     });
   return {
-    loadFcs: (name, buffer) => call("loadFcs", [name, buffer]),
+    loadFcs: (name, buffer) => {
+      // Move the file bytes to the worker (transfer = no structured-clone copy).
+      // Only a plain ArrayBuffer is transferable; a SharedArrayBuffer is already
+      // shared, so it must NOT go in the transfer list.
+      const ab = buffer instanceof Uint8Array ? buffer.buffer : buffer;
+      const transfer = ab instanceof ArrayBuffer ? [ab] : [];
+      return call("loadFcs", [name, buffer], transfer);
+    },
     addColumns: (name, channels, columns) =>
       call("addColumns", [name, channels, columns]),
     bin2d: (req) => call("bin2d", [req]),

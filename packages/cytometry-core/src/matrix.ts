@@ -23,9 +23,14 @@ export interface ChannelMeta {
   range?: number;
 }
 
-function allocBuffer(byteLength: number): ArrayBufferLike {
-  // Prefer SharedArrayBuffer so the matrix can cross worker boundaries without
-  // a structured-clone copy. Requires COOP/COEP (self.crossOriginIsolated).
+/**
+ * Allocate a backing buffer, preferring a `SharedArrayBuffer` so the bytes can
+ * cross worker boundaries (and feed the GPU uploader) without a structured-clone
+ * copy. Requires cross-origin isolation (COOP/COEP); falls back to a plain
+ * `ArrayBuffer` when SAB is unavailable. Exported so the FCS parser can write a
+ * loaded sample straight into shared memory — see `@joeee/fcs` `ParseOptions.alloc`.
+ */
+export function allocSharedBuffer(byteLength: number): ArrayBufferLike {
   if (
     typeof SharedArrayBuffer !== "undefined" &&
     (globalThis as { crossOriginIsolated?: boolean }).crossOriginIsolated !== false
@@ -67,7 +72,7 @@ export class EventMatrix {
     channels: ReadonlyArray<ChannelMeta>,
   ): EventMatrix {
     const bytes = eventCount * channels.length * Float32Array.BYTES_PER_ELEMENT;
-    return new EventMatrix(eventCount, channels, allocBuffer(bytes));
+    return new EventMatrix(eventCount, channels, allocSharedBuffer(bytes));
   }
 
   /** Wrap an existing buffer (e.g. one received from a worker). */

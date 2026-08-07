@@ -45,4 +45,12 @@ export interface ParseOptions {
   offsetSource?: "auto" | "header" | "text";
   /** Cap events parsed (for previews / progressive loading). */
   maxEvents?: number;
+  /**
+   * Allocator for the column-major event buffer. Lets the caller place the
+   * parsed matrix in shared memory (a `SharedArrayBuffer`) so it can live in a
+   * Web Worker and be read by the WASM kernels / GPU uploader without a copy —
+   * the engine passes `@joeee/cytometry-core`'s `allocSharedBuffer`. Defaults to
+   * a plain `ArrayBuffer` (deterministic, dependency-free for unit tests).
+   */
+  alloc?: (byteLength: number) => ArrayBufferLike;
 }

@@ -31,30 +31,42 @@ export function knn(
 
   const indices = new Int32Array(n * k);
   const distances = new Float64Array(n * k);
-  const buf = new Float64Array(n);
+  // Per-row bounded selection buffers (k smallest), kept sorted ascending by
+  // (distance, index). Avoids the previous O(N log N) full sort + N-length array
+  // allocation per point — this is the hot path under PhenoGraph/UMAP/spatial.
+  const selDist = new Float64Array(k);
+  const selIdx = new Int32Array(k);
 
   for (let i = 0; i < n; i++) {
     const ei = idx[i];
+    let filled = 0;
     for (let j = 0; j < n; j++) {
-      if (j === i) {
-        buf[j] = Infinity;
-        continue;
-      }
+      if (j === i) continue;
       const ej = idx[j];
       let s = 0;
       for (let c = 0; c < d; c++) {
         const dv = columns[c][ei] - columns[c][ej];
         s += dv * dv;
       }
-      buf[j] = s;
+      // Reject anything that can't crack the current k smallest. Strict `<` on a
+      // full buffer keeps the earlier (smaller-index) point on ties, matching a
+      // stable ascending sort by (distance, index).
+      if (filled === k && s >= selDist[k - 1]) continue;
+      // Insertion sort into the bounded buffer: place after equal-distance
+      // entries (which have smaller j, inserted earlier) to preserve tie order.
+      let p = filled < k ? filled : k - 1;
+      while (p > 0 && selDist[p - 1] > s) {
+        selDist[p] = selDist[p - 1];
+        selIdx[p] = selIdx[p - 1];
+        p--;
+      }
+      selDist[p] = s;
+      selIdx[p] = j;
+      if (filled < k) filled++;
     }
-    // Partial selection of the k smallest.
-    const order = Array.from({ length: n }, (_, j) => j).sort(
-      (a, b) => buf[a] - buf[b],
-    );
     for (let t = 0; t < k; t++) {
-      indices[i * k + t] = order[t];
-      distances[i * k + t] = Math.sqrt(buf[order[t]]);
+      indices[i * k + t] = selIdx[t];
+      distances[i * k + t] = Math.sqrt(selDist[t]);
     }
   }
   return { n, k, indices, distances, eventIndex: Int32Array.from(idx) };

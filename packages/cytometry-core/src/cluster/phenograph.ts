@@ -1,4 +1,5 @@
 import { knn } from "../graph/knn.ts";
+import { leiden } from "../graph/leiden.ts";
 import { louvain, modularity, type WeightedGraph } from "../graph/louvain.ts";
 import type { Population } from "../population.ts";
 
@@ -17,7 +18,13 @@ export interface PhenographResult {
 
 export function phenograph(
   columns: ArrayLike<number>[],
-  opts: { k?: number; parent?: Population; resolution?: number } = {},
+  opts: {
+    k?: number;
+    parent?: Population;
+    resolution?: number;
+    /** Community-detection backend. Leiden guarantees connected communities. */
+    community?: "louvain" | "leiden";
+  } = {},
 ): PhenographResult {
   const k = opts.k ?? 30;
   const g = knn(columns, k, { parent: opts.parent });
@@ -58,7 +65,10 @@ export function phenograph(
   });
 
   const graph: WeightedGraph = { n, edges };
-  const labels = louvain(graph, { resolution: opts.resolution });
+  const labels =
+    opts.community === "leiden"
+      ? leiden(graph, { resolution: opts.resolution })
+      : louvain(graph, { resolution: opts.resolution });
   const clusterCount = new Set(Array.from(labels)).size;
   return { labels, clusterCount, modularity: modularity(graph, labels) };
 }

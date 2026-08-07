@@ -1,6 +1,7 @@
 import {
   EventMatrix,
   Population,
+  allocSharedBuffer,
   cluster as coreCluster,
   compensation,
   defaultKernels,
@@ -71,7 +72,10 @@ export class Engine {
   }
 
   loadFcs(name: string, buffer: ArrayBuffer | Uint8Array): SampleInfo {
-    const f = parseFcs(buffer);
+    // Parse straight into shared memory: when cross-origin isolated this is a
+    // SharedArrayBuffer, so the matrix lives here in the worker and the WASM
+    // kernels / GPU uploader read it with zero copies (see docs/DERISKING.md).
+    const f = parseFcs(buffer, { alloc: allocSharedBuffer });
     const channels: ChannelMeta[] = f.channels.map((c) => ({
       name: c.name,
       label: c.label,

@@ -6,7 +6,7 @@
  * joeee is downstream of here — UIs talk to @joeee/engine-controller, which
  * orchestrates this engine in a Worker.
  */
-export { EventMatrix } from "./matrix.ts";
+export { EventMatrix, allocSharedBuffer } from "./matrix.ts";
 export type { ChannelMeta } from "./matrix.ts";
 export { Population } from "./population.ts";
 
@@ -31,6 +31,7 @@ export * as ml from "./ml/index.ts";
 export * as spatial from "./spatial/index.ts";
 export * as discovery from "./discovery/index.ts";
 export * as multisample from "./multisample/index.ts";
+export * as proliferation from "./proliferation/index.ts";
 export {
   defaultKernels,
   loadWasmKernels,

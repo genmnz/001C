@@ -12,4 +12,6 @@ export { agglomerative } from "./hierarchical.ts";
 export type { HierResult, Linkage } from "./hierarchical.ts";
 export { consensusCluster } from "./consensus.ts";
 export type { ConsensusResult } from "./consensus.ts";
+export { spectralCluster } from "./spectral.ts";
+export type { SpectralResult } from "./spectral.ts";
 export { labelsToPopulations } from "./labels.ts";

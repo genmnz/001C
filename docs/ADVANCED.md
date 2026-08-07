@@ -12,28 +12,40 @@ Stochastic methods validated by ARI/modularity/EMD, never exact coords.
 - [x] Singlet gate ← `core/cleaning`
 - [~] GMM/mixture-model gating backbone available (`core/cluster/gmm`); wiring to 2D gates TODO
 - [ ] peak-detection; openCyto CSV templates; GateNet AI
+- [ ] curly-quad / spider / pencil gate shapes (FlowJo)
+- [ ] HyperFinder-style gate-sequence discovery (recapitulate cluster/DR-defined
+  populations as an optimal, sortable gating path)
 
 ## B. Dimensionality reduction
 - [x] PCA (Jacobi eigen) ← `core/reduce`
 - [x] t-SNE (exact, perplexity-calibrated; neighbor-preservation tested) ← `core/reduce`
 - [x] UMAP (fuzzy simplicial set + SGD; neighbor-preservation tested) ← `core/reduce`
 - [x] Classical MDS (Torgerson) ← `core/reduce`
-- [ ] Isomap/diffusion maps; PaCMAP; PHATE; EmbedSOM
+- [x] Isomap (kNN geodesic → classical MDS; unrolls curved manifolds) ← `core/reduce`
+- [ ] opt-SNE (auto-perplexity / KL early-exit); diffusion maps; PaCMAP; TriMap;
+  PHATE; EmbedSOM
 
 ## C. Clustering
 - [x] k-means (++ seeded; Rust assign kernel) ← `core/cluster`
 - [x] DBSCAN (density-based; noise = -1) ← `core/cluster`
 - [x] FlowSOM (SOM + MST + k-means metacluster, clean-room) ← `core/cluster`
 - [x] GMM (EM, diagonal covariance) ← `core/cluster`
-- [x] PhenoGraph (kNN→Jaccard→Louvain; communities never span blobs) ← `core/cluster` + `core/graph`
+- [x] PhenoGraph (kNN→Jaccard→Louvain **or Leiden**; communities never span blobs) ← `core/cluster` + `core/graph`
+- [x] Leiden (local-move + refinement + aggregation; connected-community guarantee) ← `core/graph`
+- [x] Spectral clustering (self-tuning affinity → normalized Laplacian → k-means;
+  separates non-convex populations) ← `core/cluster`
 - [x] Hierarchical agglomerative (avg/complete/single linkage) ← `core/cluster`
 - [x] Consensus clustering (co-association + agglomerative) ← `core/cluster`
 - [x] Cluster→population bridge (labelsToPopulations) ← `core/cluster`
-- [ ] HDBSCAN; spectral; Leiden refinement
+- [x] Density-dependent downsampling (SPADE) — preserves rare pops, feeds
+  clustering/DR faster ← `core/sample.densityDependentDownsample`
+- [ ] HDBSCAN; full SPADE tree (downsample→cluster→MST)
 
 ## D. Cell population discovery
 - [x] Marker enrichment (per-cluster z-scores) + top-marker cell typing ← `core/discovery`
-- [ ] rare/novel detection; atlas mapping; trajectory
+- [x] Proliferation / division-dye (CFSE) modeling — KDE peak-ladder → generations
+  + division/proliferation/expansion/replication indices (Roederer) ← `core/proliferation`
+- [ ] rare/novel detection; atlas mapping; trajectory / pseudotime inference
 
 ## E. Differential analysis
 - [x] Differential abundance (per-sample freq + Mann-Whitney) ← `core/stats/comparative`
@@ -76,5 +88,9 @@ Stochastic methods validated by ARI/modularity/EMD, never exact coords.
 - [ ] shared projects; comments; review/approval; version control; permissions
 
 ## N. Enterprise / platform (LAST)
-- [~] WebGPU rendering; WASM analysis (present); out-of-core for >4 GB
+- [x] Engine runs off-main-thread: app wires the Worker backend by default; FCS
+  bytes transferred in (no copy), matrix parsed straight into a SharedArrayBuffer
+  ← `app-react/main.tsx` + `engine-controller/worker`
+- [~] WebGPU rendering; WASM analysis (kernels load when `build:wasm` artifact is
+  served, else TS fallback); out-of-core for >4 GB
 - [ ] distributed/cloud; pipelines; scheduled analysis; API; server-side native Rust for billions

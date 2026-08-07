@@ -1,5 +1,7 @@
+import { knn } from "../graph/knn.ts";
 import { EventMatrix, type ChannelMeta } from "../matrix.ts";
 import { Population } from "../population.ts";
+import { percentile } from "../stats/descriptive.ts";
 
 /**
  * Sample-level operations: concatenate, downsample, and export. Metadata
@@ -71,6 +73,67 @@ export function downsample(
     if (j < n) reservoir[j] = indices[k];
   }
   for (const i of reservoir) pop.set(i);
+  return pop;
+}
+
+/**
+ * Density-dependent downsampling (SPADE, Qiu et al. 2011 — clean-room from the
+ * published description). Thins dense regions while keeping rare/low-density
+ * cells, so downstream clustering / DR see rare populations at boosted weight
+ * instead of drowning in the dominant blobs. Also a speed lever: fewer events
+ * into t-SNE/UMAP/FlowSOM without discarding the biology.
+ *
+ * Local density is estimated from the k-th nearest-neighbour distance
+ * (LD ∝ 1 / dist_k) over the chosen columns. Each event is then:
+ *   - dropped if LD < outlier density (noise below the `outlierPercentile`),
+ *   - kept with probability TD/LD if LD > target density (`targetPercentile`),
+ *   - kept otherwise.
+ *
+ * Cost is the underlying kNN (brute-force O(N²·d) here, as elsewhere in the
+ * engine); run it on a parent population or a coarse random pre-sample for very
+ * large N. Deterministic for a given `seed`.
+ */
+export function densityDependentDownsample(
+  columns: ArrayLike<number>[],
+  opts: {
+    k?: number;
+    targetPercentile?: number;
+    outlierPercentile?: number;
+    seed?: number;
+    parent?: Population;
+  } = {},
+): Population {
+  const total = columns[0].length;
+  const k = opts.k ?? 15;
+  const targetP = opts.targetPercentile ?? 3;
+  const outlierP = opts.outlierPercentile ?? 1;
+  const rng = mulberry32(opts.seed ?? 1);
+
+  const graph = knn(columns, k, { parent: opts.parent });
+  const n = graph.n;
+  const eventIndex = graph.eventIndex;
+
+  // Local density from the k-th neighbour distance (larger distance → sparser).
+  const eps = 1e-12;
+  const density = new Float64Array(n);
+  for (let i = 0; i < n; i++) {
+    const distK = graph.distances[i * k + (k - 1)];
+    density[i] = 1 / (distK + eps);
+  }
+
+  const sortedDensity = Float64Array.from(density).sort();
+  const targetDensity = percentile(sortedDensity, targetP);
+  const outlierDensity = percentile(sortedDensity, outlierP);
+
+  const pop = new Population(total, undefined, "density-downsample");
+  for (let i = 0; i < n; i++) {
+    const ld = density[i];
+    if (ld < outlierDensity) continue; // noise / outlier
+    if (ld > targetDensity) {
+      if (rng() > targetDensity / ld) continue; // thin dense region
+    }
+    pop.set(eventIndex[i]);
+  }
   return pop;
 }
 

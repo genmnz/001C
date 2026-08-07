@@ -1,6 +1,17 @@
 import type { FcsHeader } from "./header.ts";
 import type { FcsChannel, ParseOptions } from "./types.ts";
 
+const latin1 = new TextDecoder("latin1");
+/** A single ASCII numeric token: optional sign, int/decimal, optional exponent. */
+const NUMERIC = /[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/g;
+
+/** Allocate the column-major Float32 store via the caller's allocator (or a
+ * plain ArrayBuffer), keeping the SAB seam in one place for both data paths. */
+function allocData(elements: number, opts: ParseOptions): Float32Array {
+  const byteLength = elements * Float32Array.BYTES_PER_ELEMENT;
+  return new Float32Array(opts.alloc ? opts.alloc(byteLength) : new ArrayBuffer(byteLength));
+}
+
 /**
  * Mask for integer data. The FCS standard stores values in `$PnB` bits but only
  * the low-order bits implied by `$PnR` are significant; vendors routinely leave
@@ -61,13 +72,6 @@ export function parseData(
   if (mode !== "L") {
     throw new Error(`FCS: unsupported $MODE "${mode}" (only list mode L)`);
   }
-  if (datatype === "A") {
-    throw new Error("FCS: ASCII ($DATATYPE A) data not yet supported");
-  }
-
-  const byteord = (text.get("$BYTEORD") ?? "1,2,3,4").trim();
-  const little = byteord.split(",")[0].trim() === "1";
-
   const par = channels.length;
   let tot = parseInt(text.get("$TOT") ?? "0", 10) || 0;
   if (opts.maxEvents && opts.maxEvents < tot) tot = opts.maxEvents;
@@ -78,6 +82,15 @@ export function parseData(
     opts.offsetSource ?? "auto",
     warnings,
   );
+
+  // ASCII ($DATATYPE A): the DATA segment holds delimited (or fixed-width) text
+  // rather than packed binary — a different reader from the integer/float path.
+  if (datatype === "A") {
+    return parseAsciiData(bytes, dataStart, dataEnd, channels, tot, opts, warnings);
+  }
+
+  const byteord = (text.get("$BYTEORD") ?? "1,2,3,4").trim();
+  const little = byteord.split(",")[0].trim() === "1";
 
   const dv = new DataView(
     bytes.buffer,
@@ -102,7 +115,10 @@ export function parseData(
     );
   }
 
-  const data = new Float32Array(tot * par);
+  // Allocate via the caller's allocator (shared memory in the worker) or a
+  // plain ArrayBuffer by default. Either way the layout is identical, so the
+  // engine wraps it with EventMatrix.fromBuffer with no transpose.
+  const data = allocData(tot * par, opts);
 
   for (let e = 0; e < tot; e++) {
     const base = e * stride;
@@ -132,5 +148,77 @@ export function parseData(
     }
   }
 
+  return { eventCount: tot, data, warnings };
+}
+
+/**
+ * Read $DATATYPE A (ASCII) list-mode data. Two layouts exist in the wild:
+ *  - **delimited / free format** (the common one): values separated by any
+ *    non-numeric run (space, tab, newline, comma). We tokenize numbers and read
+ *    them per event, transposing into the column-major store.
+ *  - **fixed-width**: values packed with no delimiter, each `$PnB` characters
+ *    wide. Used as a fallback when the delimited scan comes up short but the
+ *    per-channel widths are known.
+ * Values are stored as Float32 to match the binary path (the engine treats every
+ * sample identically regardless of on-disk datatype).
+ */
+function parseAsciiData(
+  bytes: Uint8Array,
+  dataStart: number,
+  dataEnd: number,
+  channels: FcsChannel[],
+  tot: number,
+  opts: ParseOptions,
+  warnings: string[],
+): DataResult {
+  const par = channels.length;
+  const region = latin1.decode(bytes.subarray(dataStart, dataEnd + 1));
+  const need = tot * par;
+  const data = allocData(need, opts);
+
+  const fill = (token: string, t: number): void => {
+    // token index t is row-major (event-major); transpose to column-major.
+    data[(t % par) * tot + ((t / par) | 0)] = parseFloat(token);
+  };
+
+  const tokens = region.match(NUMERIC) ?? [];
+  if (tokens.length >= need) {
+    for (let t = 0; t < need; t++) fill(tokens[t], t);
+    // Extra values are expected when maxEvents intentionally caps the read; only
+    // flag them when we meant to consume the whole DATA segment.
+    if (tokens.length > need && opts.maxEvents === undefined) {
+      warnings.push(
+        `ASCII data has ${tokens.length} values, expected ${need}; extras ignored`,
+      );
+    }
+    return { eventCount: tot, data, warnings };
+  }
+
+  // Fixed-width fallback: each value is channels[p].bits characters wide.
+  const widths = channels.map((c) => c.bits);
+  const stride = widths.reduce((a, b) => a + b, 0);
+  if (stride > 0 && region.length >= tot * stride) {
+    const offset: number[] = [];
+    let acc = 0;
+    for (const w of widths) {
+      offset.push(acc);
+      acc += w;
+    }
+    for (let e = 0; e < tot; e++) {
+      const base = e * stride;
+      for (let p = 0; p < par; p++) {
+        const field = region.slice(base + offset[p], base + offset[p] + widths[p]);
+        const v = parseFloat(field);
+        data[p * tot + e] = Number.isFinite(v) ? v : 0;
+      }
+    }
+    return { eventCount: tot, data, warnings };
+  }
+
+  // Short data: fill what we found and flag it rather than throw.
+  for (let t = 0; t < tokens.length && t < need; t++) fill(tokens[t], t);
+  warnings.push(
+    `ASCII data: found ${tokens.length} values, expected ${need}; output is incomplete`,
+  );
   return { eventCount: tot, data, warnings };
 }
