@@ -135,16 +135,24 @@ PhenoGraph/hierarchical/consensus, differential abundance, CytoNorm, CyTOF
 debarcoding/bead-norm/isotope-spillover, spectral unmixing, logistic ML, spatial
 neighborhoods, Gating-ML 2.0 import, and workspace save/load + undo/redo.
 
-**Still open** (heaviest tier): HDBSCAN/spectral clustering, PHATE/EmbedSOM/Isomap,
-edgeR-NB-GLM/GLMM/survival, RandomForest/SVM/NN, FlowJo `.wsp` import, the WASM
-zero-copy path + on-device GPU parity, and the explicitly-last collaboration /
-enterprise tiers.
+**Still open** (heaviest tier): HDBSCAN and the full SPADE tree, PHATE/EmbedSOM/PaCMAP/opt-SNE,
+trajectory/pseudotime, edgeR-NB-GLM/GLMM/survival, RandomForest/SVM/NN, FlowJo `.wsp` import,
+the WASM zero-copy path + on-device GPU parity, and the explicitly-last collaboration /
+enterprise tiers. The authoritative, per-item list with each gap's source and oracle is
+`docs/RESEARCH.md`; the backlog is `docs/TODO.md`.
+
+**The largest gap is not in the engine, it is between the engine and the UI.** Whole tested
+tiers (cleaning/QC, auto-gating, spectral unmixing, CyTOF, differential abundance, batch
+correction, multi-sample) have no surface in the app yet, and most plot types in `docs/PLOTS.md`
+need wiring rather than new math. Tracked in `docs/TODO.md` §3.
 
 ---
 
 ## Validation & tests
 
-- **~590 TS tests + Rust tests; `tsc` clean; the app builds.**
+- **`bun test` for the current count** (it lives in one place, `docs/README.md`, so four docs
+  can't disagree about it, which they did until 2026-08-07). Plus Rust tests via
+  `bun run test:wasm`, and `bun run typecheck`.
 - Every numeric kernel with an oracle is validated against **flowutils** (the
   FlowKit logicle C extension / Moore–Parks reference): logicle ~5e-17, hyperlog
   ~3e-17, compensation (`solve(Sᵀ,·)`), polygon/ellipse gating (0 mismatches over
@@ -161,8 +169,17 @@ enterprise tiers.
 
 ## Documentation
 
+**Start at [`docs/README.md`](./docs/README.md)** — the docs index, which says what each doc
+owns. Repo-wide agent rules: [`CLAUDE.md`](./CLAUDE.md) = [`AGENTS.md`](./AGENTS.md).
+
 | Doc | Contents |
 |---|---|
+| `docs/README.md` | **the docs index**: what each doc owns, the four registers, the verified facts |
+| `CLAUDE.md` = `AGENTS.md` | **the rules**: data integrity, porting + golden discipline, the license gate, the engine/UI boundary, the gates, the doc-loop |
+| `docs/RESEARCH.md` | register: science gaps that must never be faked, each with its authority and oracle |
+| `docs/SOURCES.md` | register: every source a sweep opened, including what was ruled out and why |
+| `docs/CHANGELOG.md` | register: what started and what landed, newest first |
+| `docs/TODO.md` | register: the open backlog |
 | `docs/ENGINE.md` | headless engine catalog (§0–§8 + WASM/GPU wiring), status-tracked |
 | `docs/ADVANCED.md` | advanced tiers A–N, status-tracked |
 | `docs/ARCHITECTURE.md` | layers, data flow, and the decisions behind them |
@@ -176,3 +193,4 @@ enterprise tiers.
 
 New here? Read `docs/ARCHITECTURE.md` for the shape, then `docs/DERISKING.md` for
 the why (cross-origin isolation, the wasm32 4 GB ceiling, the logicle patent).
+Working on it with an agent? `CLAUDE.md` first: it overrides default behavior.

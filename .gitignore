@@ -17,7 +17,11 @@ __pycache__/
 .idea/
 .vscode/
 *.log
+*.stackdump
 
-# Local data — never commit real patient FCS files
+# Local data — never commit real patient FCS files.
+# The one exception is packages/fcs/test/fixtures/, which is reserved for a real,
+# publicly-licensed FCS file (RESEARCH.md V-3). Read that directory's README before
+# adding anything to it: the parser suite is deliberately fixture-free today.
 *.fcs
 !packages/fcs/test/fixtures/*.fcs

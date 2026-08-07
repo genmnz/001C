@@ -1,5 +1,10 @@
 # ADVANCED.md — advanced tier (after engine + WASM + GPU)
 
+**Owning doc for tiers A to N, and the source of truth for them** (`ROADMAP.md` defers here).
+Unbuilt items with their authority and oracle are in [`RESEARCH.md`](./RESEARCH.md) §2 and §3;
+**the GPL entries there are clean-room-only, so do not open those implementations**
+([`LICENSES.md`](./LICENSES.md)).
+
 Status of the Operation Catalog's advanced tiers (A–N). `[x]` done · `[~]`
 partial · `[ ]` todo. Order by legal friction: permissive ports first (flowDensity
 Artistic-2.0, flowClust MIT, linfa/bhtsne/annembed, diffcyt MIT, Spectre MIT);

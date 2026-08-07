@@ -1,5 +1,13 @@
 # joeee — master roadmap
 
+> **Read the status marks here with care.** This doc owns the *build sequence and the gap
+> sweep*, not capability status: [`ENGINE.md`](./ENGINE.md) and [`ADVANCED.md`](./ADVANCED.md)
+> are the source of truth for what exists, and **Phase E's fine-grained checkboxes below are
+> known to lag the code** (the section immediately after this one says so). The open backlog
+> is [`TODO.md`](./TODO.md); the science gaps, with their authorities and oracles, are
+> [`RESEARCH.md`](./RESEARCH.md). Reconciling or retiring the stale Phase E checkboxes is
+> itself a tracked item (`TODO.md` §6).
+
 The full feature surface of the "ultimate open-source FlowJo + Cytobank + Omiq +
 CytoExploreR + Spectre + CATALYST + CytoFlow hybrid", ordered by the build
 sequence we agreed:

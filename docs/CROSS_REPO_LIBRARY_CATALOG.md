@@ -112,7 +112,8 @@ compile-at-runtime C.
 
 ## 2. `001Cytometry` — the cytometry engine
 
-Monorepo of five packages. `cytometry-core` is pure-TS and enormous (600+ passing tests); it is the
+Monorepo of five packages. `cytometry-core` is pure-TS and enormous (run `bun test` for the
+current count; it is recorded in one place, `docs/README.md`); it is the
 **source of truth**, and the WASM/GPU paths must reproduce its outputs bit-for-bit (headless-first,
 per `docs/DERISKING.md`).
 

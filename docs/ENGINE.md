@@ -1,5 +1,10 @@
 # ENGINE.md — headless core (built first, with tests)
 
+**Owning doc for `packages/cytometry-core/` and `packages/fcs/`, tiers §0 to §8.** Together
+with [`ADVANCED.md`](./ADVANCED.md) this is the source of truth for what the engine can do.
+**The status marks are read as claims** (`CLAUDE.md` §2.9): `[~]` must name what is deferred,
+and is never inflated to `[x]`.
+
 Status of the Operation Catalog's engine tier (§0–§8 + wiring). `[x]` done &
 tested · `[~]` partial · `[ ]` todo. Hot loops → Rust/WASM; I/O & orchestration →
 TS; pixels → WGSL. Event matrix stays in a JS SharedArrayBuffer. Every numeric

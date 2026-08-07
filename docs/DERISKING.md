@@ -1,5 +1,14 @@
 # De-risking review
 
+**Owning doc for the hard external constraints**: the wasm32 4 GB ceiling and Memory64's
+absence from Safari (which is why the event matrix lives in a JS `SharedArrayBuffer`), WebGPU
+coverage and why the Canvas2D fallback stays, cross-origin isolation, and the logicle patent.
+**Read this before proposing an architecture change**: most of the obvious alternatives were
+considered and are refuted here.
+
+The perishable claims below were re-verified in June 2026. `CLAUDE.md` §1c: a premise written
+down is a premise someone can falsify, so re-check them before relying on one.
+
 This is the opinionated review behind the scaffold: what the plan gets right,
 what I'd rethink, and the things to prove before they sink the timeline. It
 folds in the prior research doc and a round of fact-checking done June 2026 (my

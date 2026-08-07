@@ -1,5 +1,9 @@
 # Architecture
 
+**Owning doc for the boundary rules.** [`CLAUDE.md`](../CLAUDE.md) §3 states them as
+enforceable rules and points here for the reasoning. If the two ever disagree, they are both
+wrong until someone reconciles them.
+
 joeee is **headless-engine-first with an agnostic UI**. The engine is a set of
 pure, framework-free, DOM-free TypeScript packages (with a few hot loops mirrored
 in Rust→WASM). The UI is a thin shell that talks to one object — the
@@ -21,7 +25,7 @@ in the store the UI subscribes to. Even derived render payloads (density bins) a
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│ app-web  (vanilla TS today; React/Solid/Svelte tomorrow)      │
+│ app-react  (the product UI)  ·  app-web  (vanilla-TS proof)   │
 │   • issues commands to the controller                         │
 │   • subscribes to controller.store, re-renders                │
 │   • owns the <canvas> and hands bins to the renderer          │
@@ -90,6 +94,20 @@ swapped for the Rust/WASM SIMD versions without changing call sites.
 To add a real UI: depend on `@joeee/engine-controller` (+ `@joeee/cytometry-gpu`
 for the canvas), construct a controller with a worker backend, and render from
 the store. Do **not** import `@joeee/cytometry-core` from UI code.
+
+**Why there are two apps, and why `app-web` is kept.** `app-react` is the product.
+`app-web` is the vanilla-TS reference whose entire job is to *prove* the claim above: it
+constructs a controller, issues commands, renders from the store, and never imports
+`cytometry-core`. Delete it and the agnosticism claim becomes an assertion nobody checks.
+That makes it load-bearing documentation, not dead scaffolding, with one obligation
+attached: **a change to the controller surface must update both apps.** Today `app-web` has
+no scripts, no tests, and no CI step, so nothing would catch it breaking; that gap is
+recorded in [`TODO.md`](./TODO.md) §6.
+
+**The boundary is currently enforced by module structure and review, not by a check.** Both
+halves (no `cytometry-core` import from UI code, no DOM or framework import inside
+`cytometry-core`) are grep-checkable and belong in CI. Until they are there, the rule holds
+only because people hold it.
 
 ## Key decisions (and where they live)
 

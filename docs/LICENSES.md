@@ -1,9 +1,32 @@
 # Per-feature license ledger
 
+**Owning doc for port provenance across the whole repo.** The rule that makes it binding is
+[`CLAUDE.md`](../CLAUDE.md) §2.6.
+
+> ## The gate: no row, not merged
+>
+> **A new algorithm module is not done until it has a row in the table below, added in the
+> same change.** The row names the module, the algorithm, the reference or port source, that
+> source's license, and how it was obtained (`port` / `reimpl` / `clean-room`).
+>
+> This is the easiest rule in the repo to skip and the most expensive one to skip. Nothing
+> automated checks it today ([`TODO.md`](./TODO.md) §6), so it holds only if you hold it.
+>
+> **And the clean-room is a real constraint, not a formality:** for anything in the queue at
+> the bottom of this file, **do not open the implementation.** Not to "check a detail", not to
+> "see how they handle the edge case". Reading it contaminates the clean-room and the
+> resulting code is a derivative work regardless of how it was typed. Work from the paper.
+
 The discipline (from the Operation Catalog): **permissive** sources (BSD/MIT/
 Artistic-2.0) may be ported with attribution; **copyleft** sources (GPL/AGPL)
 must be **clean-roomed from the paper/spec — never paste code**, with the DOI
 recorded here. If a permissive equivalent appears, switch to it.
+
+**The logicle patent is real and separate from licensing.** Stanford holds patents from 2005
+(Parks, Roederer & Moore; US 6,954,722). The reference code is BSD-licensed and the transform
+is in Gating-ML 2.0, and Stanford has stated it will not assert in the field of flow cytometry.
+The repo-root [`NOTICE`](../NOTICE) records this. Do not remove or weaken it, and do not extend
+logicle code into a non-cytometry product without independent legal review.
 
 | joeee module | Algorithm | Reference / port source | License of source | How |
 |---|---|---|---|---|
@@ -36,3 +59,11 @@ flowWorkspace / CytoML (AGPL → reimplement Gating-ML 2.0 format only).
 
 Permissive ports to prefer first: flowDensity (Artistic-2.0), flowClust (MIT),
 diffcyt (MIT), Spectre (MIT), umap-learn (BSD-3), bhtsne/linfa (MIT/Apache).
+
+**A GPL package may still be used as a golden ORACLE** without contaminating anything: running
+it to capture expected outputs is use, not derivation. That is how a clean-room implementation
+gets validated (`CLAUDE.md` §2.6). The line is code you read, not a program you run. Record
+which side of it you were on in the module header.
+
+Queued clean-rooms with their target modules and oracles are tracked in
+[`RESEARCH.md`](./RESEARCH.md) §3.

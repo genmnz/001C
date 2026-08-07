@@ -1,8 +1,9 @@
 # Development & DX
 
-How the pieces wire together so that, day to day, you build a feature in the
-engine and the app picks it up through the controller — "wire it and magic
-happens." Read `ARCHITECTURE.md` for the why; this is the how.
+**Owning doc for the toolchain, the scripts, and the gates.** How the pieces wire together so
+that, day to day, you build a feature in the engine and the app picks it up through the
+controller. Read [`ARCHITECTURE.md`](./ARCHITECTURE.md) for the why; this is the how. The
+rules that govern how you verify and report are [`CLAUDE.md`](../CLAUDE.md) §5.
 
 ## Toolchain
 
@@ -15,9 +16,17 @@ happens." Read `ARCHITECTURE.md` for the why; this is the how.
 
 ```bash
 bun install        # workspace symlinks + dev type packages
-bun test           # 73 tests: engine, parser, controller, golden, wasm glue
-bun run typecheck  # tsc --noEmit across the workspace (clean)
+bun test           # engine, parser, controller, golden, wasm glue
+bun run typecheck  # tsc --noEmit across the workspace, then app-react
 ```
+
+**Test counts live in exactly one place**, [`README.md`](./README.md), because a number
+restated in four docs is a number that will disagree with itself; it did, until 2026-08-07
+(73 here, ~590 in the root README, 600+ in the cross-repo catalog). Run the command.
+
+**There is no linter and no formatter in this repo.** No Biome, no ESLint, no Prettier, no
+editorconfig. Do not claim a lint gate ran, and do not add one as a side effect of another
+change. Match the file you are editing.
 
 ## Scripts
 
@@ -26,8 +35,9 @@ bun run typecheck  # tsc --noEmit across the workspace (clean)
 | `bun test` | all TS tests (golden + wasm-glue tests skip gracefully if wasm unbuilt) |
 | `bun run test:wasm` | `cargo test` — Rust kernels incl. the flowutils golden CSV |
 | `bun run build:wasm` | adds the wasm32 target and builds with `+simd128` |
-| `bun run golden` | regenerate logicle golden values (needs the venv, see VALIDATION.md) |
-| `bun run typecheck` | `tsc -p tsconfig.base.json --noEmit` |
+| `bun run golden` | regenerate **all** golden values (needs the venv, see VALIDATION.md) |
+| `bun run typecheck` | `tsc -p tsconfig.base.json --noEmit`, then `app-react`'s own config |
+| `bun run typecheck:app` | just `app-react` (it needs `jsx: react-jsx`, so it has its own config) |
 | `bun run serve` | tiny static server with COOP/COEP (`JOEEE_ROOT=… PORT=…`) |
 
 ## The kernel seam (TS ⇄ WASM, transparently)
@@ -100,7 +110,24 @@ Cross-Origin-Embedder-Policy: require-corp
 - **Headless, in CI:** everything in `cytometry-core`, `fcs`,
   `engine-controller` (incl. the full load→density→gate→stats pipeline), the
   logicle golden tests, and the Rust kernels. `tsc` must stay clean.
-- **Conditional:** `kernels.wasm.test.ts` runs only when the `.wasm` is built
-  (CI builds it in the `rust` job; the GPU test page is manual — no GPU in CI).
-- **Validation gates:** see `docs/VALIDATION.md` (logicle is oracle-validated;
-  compensation/gating against external fixtures is the open item).
+- **Conditional, and this matters:** `kernels.wasm.test.ts` runs only when the `.wasm` is
+  built. It is the source of the skips in a default local run, so **a green `bun test` on your
+  machine does not prove TS/WASM parity.** CI builds the wasm first precisely so the test
+  cannot silently skip there. If you changed a kernel, run `bun run build:wasm` before
+  `bun test` or you have verified nothing.
+- **No GPU in CI.** The WebGPU test page is manual, and nothing asserts rendered pixels (only
+  that GPU bins equal CPU bins). Any change to the render path is **unverified** until a human
+  looks at it; say so rather than letting "tests pass" imply the pixels are right
+  (`CLAUDE.md` §5).
+- **Validation gates:** see [`VALIDATION.md`](./VALIDATION.md). Logicle, hyperlog,
+  compensation, and gating geometry are oracle-validated; the open gaps (asinh goldens, the
+  end-to-end composite, a real FCS fixture) are registered in [`RESEARCH.md`](./RESEARCH.md)
+  §1.
+
+## Where to write things down
+
+A session that touched code but left the docs alone is not finished (`CLAUDE.md` §9). The
+owning doc for the area you changed is named in [`README.md`](./README.md); the four registers
+are [`RESEARCH.md`](./RESEARCH.md) (what must never be invented), [`SOURCES.md`](./SOURCES.md)
+(what you read, including rejections), [`CHANGELOG.md`](./CHANGELOG.md) (what started and
+landed), and [`TODO.md`](./TODO.md) (what is open).

@@ -5,6 +5,9 @@
  */
 export type Rgb = [number, number, number];
 
+// @@@constant: viridis/inferno anchor stops, matplotlib's published 5-point subsample (CC0).
+// Deliberately duplicated in webgpu/shaders/density_render.wgsl so CPU and GPU color
+// identically; nothing asserts the two copies agree yet (RESEARCH.md V-4), so change both.
 const VIRIDIS: Array<[number, Rgb]> = [
   [0.0, [68, 1, 84]],
   [0.25, [59, 82, 139]],

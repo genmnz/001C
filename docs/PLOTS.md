@@ -1,5 +1,10 @@
 # Plots & view modes
 
+**Owning doc for `packages/cytometry-gpu/` and the plot catalog.** The rendering rules are
+[`CLAUDE.md`](../CLAUDE.md) §4. **Note what this doc records as deliberately NOT used**
+(deck.gl, regl, Plotly, Chart.js as the cloud renderer): that is a decision with reasons, not
+an oversight, and reintroducing one of them needs a reason that beats the one written here.
+
 The catalog of plot types and workspace view modes, and the rendering stack that
 produces them. Curated from the UX spec into MVP-now vs later, because the spec
 is a north star, not a sprint (see `docs/DERISKING.md`).
