@@ -1,7 +1,9 @@
 # Plots & view modes
 
-**Owning doc for `packages/cytometry-gpu/` and the plot catalog.** The rendering rules are
-[`CLAUDE.md`](../CLAUDE.md) §4. **Note what this doc records as deliberately NOT used**
+**Owning doc for `packages/cytometry-gpu/` and the plot catalog.** The rules that govern it are
+[`CLAUDE.md`](../CLAUDE.md) §3 (CPU/GPU parity: the CPU histogram is the source of truth, and
+the colormap is duplicated into WGSL on purpose) and §10 (UI style, and why no charting library
+draws the event cloud). **Note what this doc records as deliberately NOT used**
 (deck.gl, regl, Plotly, Chart.js as the cloud renderer): that is a decision with reasons, not
 an oversight, and reintroducing one of them needs a reason that beats the one written here.
 

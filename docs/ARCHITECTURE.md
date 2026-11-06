@@ -109,6 +109,24 @@ halves (no `cytometry-core` import from UI code, no DOM or framework import insi
 `cytometry-core`) are grep-checkable and belong in CI. Until they are there, the rule holds
 only because people hold it.
 
+## The outer boundary: nothing leaves the machine
+
+There is a second boundary, and it is the one users care about most. **The app makes no
+network requests at all.** The only `fetch` anywhere in the app graph is
+`cytometry-core/src/kernels/index.ts` loading the local `.wasm` artifact: no API, no CDN, no
+font host, no analytics, no telemetry, no update check. FCS files carry patient data, so
+"nothing is uploaded" has to be a structural fact rather than a promise.
+
+It is also **coupled to the performance architecture**, which is the part that is easy to miss.
+COEP `require-corp` blocks any cross-origin asset that does not send CORP, so pulling one
+library from a CDN does not merely leak a request: it costs cross-origin isolation, which costs
+`SharedArrayBuffer`, which silently degrades the event matrix to per-worker copies. The privacy
+property and the interactivity property protect each other, and giving up one gives up both.
+
+Nothing enforces this today either ([`TODO.md`](./TODO.md) §6). Adding the first outbound
+request is an architecture change and belongs here and in the changelog, with its reason
+(`CLAUDE.md` §4).
+
 ## Key decisions (and where they live)
 
 | Decision | Where | Rationale |

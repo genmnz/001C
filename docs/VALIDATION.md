@@ -13,6 +13,13 @@ the tolerances, and the regeneration ritual. Open validation gaps are registered
 > 3. **Preserve the `provenance` block** in every golden file. A golden without provenance is
 >    a number nobody can re-derive. If you cannot run the oracle, say so rather than adjusting
 >    an expectation to match your output.
+> 4. **The tolerances on this page are a ratchet: they tighten, never loosen** (`CLAUDE.md`
+>    §2.2). Refusing to edit a golden means nothing if the comparison around it can be widened
+>    instead, and widening is the quieter cheat: the diff looks like a rounding concession
+>    rather than a retracted claim. The numbers below (logicle ~5e-17, hyperlog ~3e-17,
+>    compensation <1e-6, gating **zero** mismatches) are commitments. A widening ships only
+>    with the oracle run that justifies it and a comment naming the error source, and an
+>    exact-match assertion never becomes approximate.
 
 The logicle transform is the correctness keystone: render, gating, and stats all
 depend on correct transformed coordinates. We validate it at three levels.
@@ -137,3 +144,10 @@ numeric oracle and will never have one.** They are held to structural invariants
 (neighbor-preservation, purity, modularity, ARI) with a fixed seed. This is the correct
 approach, not a gap: an exact-coordinate test on these would be flaky by construction. Do not
 "strengthen" it (`CLAUDE.md` §2.3).
+
+**But the fixed seed the tests use is not the seed the app uses.** The engine defaults to
+`seed ?? 1` and the workspace persists no seed at all, so a result a user sees is reproducible
+in CI and **not reproducible for them** (`CLAUDE.md` §1.2, [`TODO.md`](./TODO.md) §1). That is
+a product defect rather than a validation one, recorded here because this is the page where
+someone asks "is this number trustworthy" and the answer differs between the test suite and the
+application.

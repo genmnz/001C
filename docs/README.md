@@ -76,7 +76,13 @@ invisible the moment the session ends.
    canvas, no framework, and no runtime dependency. `app-web` exists to prove the claim.
 3. **Nothing scientific is invented.** Every numeric kernel with an oracle is validated
    against one; everything without an oracle is registered as a gap, never approximated
-   quietly.
-4. **Copyleft is clean-roomed, never pasted**, and every algorithm's provenance is recorded
+   quietly. Tolerances are ratchets: they tighten, never loosen.
+4. **A result nobody can reproduce is not a result.** Every stochastic operation carries its
+   seed and its parameters, and both survive a save and reload. (Not true yet: see
+   [`TODO.md`](./TODO.md) §1.)
+5. **Copyleft is clean-roomed, never pasted**, and every algorithm's provenance is recorded
    before it merges.
-5. **No backend.** It runs from a static server that sets two headers.
+6. **Nothing leaves the machine.** No backend, and beyond that **no outbound request at all**:
+   no API, no CDN, no fonts, no telemetry. FCS files carry patient data, and the only `fetch`
+   in the app graph loads the local `.wasm`. It runs from a static server that sets two
+   headers, and a CDN import would break cross-origin isolation as well as the privacy claim.

@@ -36,6 +36,26 @@ a scientific result, which is the one thing `CLAUDE.md` §1 forbids outright.
 - 🔴 **Synthetic demo data is not labelled as synthetic.** `synthClusters()` loads as
   `demo.fcs`, which reads like a file. Under the §1a-pre carve-out, generated data is fine and
   **mislabelled** generated data is not. Name it what it is in the workspace.
+- 🔴 **Stochastic results are not reproducible** (`CLAUDE.md` §1.2). Three separate defects
+  that compound:
+  1. `packages/engine-controller/src/engine.ts` does `seed: seed ?? 1` for the downsample that
+     feeds clustering and embedding. A silent default for a stochastic operation is a hidden
+     hardcoded parameter (§10), and the user is never shown which seed produced their figure.
+  2. `WorkspaceDoc` (`packages/engine-controller/src/workspace.ts`) serializes gates,
+     transform, axes, and metadata, and **stores no clustering, no embedding, and no seed**.
+     Save, reopen, re-run, get a different answer, with no warning.
+  3. The parameters that produced a result (k, perplexity, neighbors, metric, downsample size
+     and method, which channels) are call arguments, not properties of the returned result, so
+     the UI cannot show what a displayed embedding actually was.
+
+  The fix is one shape: make the parameter set part of the result, persist it, and surface it.
+  This is the difference between a figure a user can publish and one they cannot.
+- 🔴 **Nothing enforces the zero-network property** (`CLAUDE.md` §4). The app makes no outbound
+  requests at all today (the only `fetch` in the graph loads the local `.wasm`), which is what
+  makes "your patient data never leaves the machine" a true statement rather than a marketing
+  one. One convenience import ends it silently. A CI grep for `fetch(`, `XMLHttpRequest`,
+  `WebSocket`, and `sendBeacon` outside `kernels/index.ts` and `server/` would pin it, and it
+  belongs next to the boundary checks in §6 below.
 - 🔴 **The WGSL colormap copy is never compared to the TS copy** (**V-4** in
   [`RESEARCH.md`](./RESEARCH.md)). `colormap.ts` duplicates its viridis/inferno anchors into
   `webgpu/shaders/density_render.wgsl` on purpose so CPU and GPU color identically, and
@@ -146,12 +166,13 @@ each is in [`RESEARCH.md`](./RESEARCH.md) §2 and §3.
 - ✅ **`app-react` was excluded from the typecheck.** Fixed 2026-08-07 as its own step.
 - 🔴 **No linter or formatter exists.** No Biome, no ESLint, no Prettier, no editorconfig.
   Formatting is by convention and drifts. Adding one is a real decision with a real diff, so it
-  is listed here rather than smuggled into another change (`CLAUDE.md` §4). Biome is the
+  is listed here rather than smuggled into another change (`CLAUDE.md` §5). Biome is the
   cheapest fit for a Bun workspace.
-- 🔴 **Boundary rules are prose, not checks.** `CLAUDE.md` §3's two hardest invariants are
-  grep-checkable and belong in CI: no `@joeee/cytometry-core` import from `app-react` or
-  `app-web`, and no DOM/framework import inside `cytometry-core`. A ten-line CI step would
-  enforce what a doc currently only asks for.
+- 🔴 **Boundary rules are prose, not checks.** Three invariants are grep-checkable and belong
+  in one CI step: no `@joeee/cytometry-core` import from `app-react` or `app-web`, no
+  DOM/framework import inside `cytometry-core` (both `CLAUDE.md` §3), and no outbound network
+  call anywhere in the app graph (§4). A ten-line CI step would enforce what the docs currently
+  only ask for.
 - 🔴 **The `LICENSES.md` row rule is not enforced.** `CLAUDE.md` §2.6 makes it blocking, but
   nothing checks that a new module under `cytometry-core/src/<algorithm>/` has a row. This is
   the highest-risk unenforced policy in the repo.

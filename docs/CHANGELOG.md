@@ -27,6 +27,30 @@ absence stays distinguishable from an oversight (`CLAUDE.md` §9, document the n
 
 ---
 
+- 2026-08-07: **(done)** **Rules pass 2: reproducibility, the zero-network property, and the
+  tolerance ratchet; §4 repurposed.** Owning doc: [`README.md`](./README.md). Three rules added
+  to `CLAUDE.md`, two of them prompted by defects found in the code rather than by doctrine.
+  **§1.2 reproducibility:** every stochastic operation must carry an explicit seed and its
+  parameters, attach them to the result, and persist them; `engine.ts` defaults `seed ?? 1` and
+  `WorkspaceDoc` stores no seed, no clustering, and no embedding, so a user cannot regenerate
+  their own figure ([`TODO.md`](./TODO.md) §1). **§4 nothing leaves the machine:** the app makes
+  zero outbound requests today (the only `fetch` loads the local `.wasm`), which is what makes
+  the patient-data claim structural; it is currently defended by nothing, and a CDN import would
+  cost cross-origin isolation as well as privacy. **§2.2 the tolerance ratchet:** tolerances
+  tighten and never loosen, because refusing to hand-edit a golden achieves nothing if the
+  comparison around it can be widened. **Merged:** the old §4 (a thin colormap-plus-styling
+  grab-bag) dissolved into §3 (CPU/GPU mirrors, plus a new rule that a silent WASM-to-TS or
+  WebGPU-to-Canvas2D fallback must be visible) and §10 (UI style, never-fail-silently, and a new
+  rule that every statistic states its definition, since "MFI" means different things in
+  different tools). The `1a-pre` heading became §1.1. **§4 was reused rather than renumbered on
+  purpose:** §5 through §11 are cross-referenced about twenty times across `docs/`, and
+  renumbering to close a gap is churn that breaks every one of them. **Gates:** `bun test` 621
+  pass / 3 skip / 624 tests, `bun run typecheck` clean. **NOT run:** no browser or GPU pass; no
+  Rust (nothing touched). **Left open:** two rules I proposed and did not write, because both
+  imply work rather than a paragraph: performance-as-correctness (no per-event allocation, no
+  full-matrix copy, measure before claiming faster) and the UI half of "every statistic states
+  its definition".
+
 - 2026-08-07: **(started)** **(done)** **Governance system: `CLAUDE.md` / `AGENTS.md`, four
   registers, and the doc conventions.** Owning doc: [`README.md`](./README.md) (the docs
   index). Added the repo-wide agent rules (§0 orientation through §11 the wiring contract),

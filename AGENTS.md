@@ -80,7 +80,7 @@ and view modes → `docs/PLOTS.md`; the hard constraints and why → `docs/DERIS
 - No `FAKE_*`, `MOCK_*`, `dummy`, `lorem`, or sample-object literals standing in for real
   records. If real data isn't available, say so and ask. Do not invent it.
 
-### 1a-pre. The synthetic-data carve-out (read this before you "fix" `synth.ts`)
+### 1.1 The synthetic-data carve-out (read this before you "fix" `synth.ts`)
 
 This repo generates synthetic events **on purpose**, and that is legitimate:
 
@@ -105,6 +105,42 @@ The carve-out has **three hard limits**:
    clothes, and it is a §1 violation. **This exists in the code today** (`app-react/src/App.tsx`,
    the `compensate` action) and is registered in [`docs/TODO.md`](./docs/TODO.md); do not copy
    the pattern, and do not add more of it.
+
+### 1.2 Reproducibility: a result nobody can reproduce is not a result
+
+The other half of §1. Fabricated data and unreproducible results fail the same way: the number
+on screen does not mean what a scientist will take it to mean. A cytometry result is a claim
+someone may put in a paper, and a claim that cannot be regenerated is not evidence.
+
+**Every stochastic operation takes an explicit seed, shows it, records it with its result, and
+persists it.** All four, not the first one only:
+
+1. **Explicit, never silently defaulted.** `seed ?? 1` inside the engine is a hidden hardcoded
+   default (§10) wearing the clothes of a convenience. If the caller did not choose a seed,
+   generate one, **return it**, and show it. **This exists in the code today**
+   (`packages/engine-controller/src/engine.ts`, the cluster/embed path).
+2. **Surfaced as a control**, alongside every other parameter that changed the result: k,
+   perplexity, neighbors, min-dist, iterations, metric, downsample size and method, and which
+   channels were fed in.
+3. **Attached to the result**, not to the call. A clustering or embedding that has been handed
+   back to the UI must carry the parameters that produced it, or the two drift the moment a
+   user changes a control without re-running.
+4. **Persisted in the workspace.** **`WorkspaceDoc`
+   (`packages/engine-controller/src/workspace.ts`) today serializes gates, transform, axes, and
+   metadata, and stores no clustering, no embedding, and no seed at all.** A user who saves,
+   reopens, and re-runs gets a different answer with no warning. Tracked in
+   [`docs/TODO.md`](./docs/TODO.md) §1.
+
+**The same obligation applies to anything else that silently varies the output**: a downsample,
+a reservoir sample, an iteration cap, a convergence tolerance, a tie-break, or an ordering that
+depends on `Object.keys`. If it changes the number, it is a parameter, and a parameter is
+recorded (§11: every operation is undoable **and** serializable).
+
+**Determinism is the default and non-determinism is a declared property.** Given the same
+inputs and the same recorded parameters, an operation returns the same output, on both the TS
+and WASM kernels (§3) and on both backends. Where that genuinely cannot hold, say so at the
+call site and in the owning doc, and say what does hold instead (a bound, a distribution, a
+structural invariant, §2.3).
 
 ## 1a. Research markers (`TODO:RESEARCH` / `@@@research`): the anti-pollution rule
 
@@ -316,6 +352,23 @@ Outputs are captured by running the **real** source library and asserted against
 - Regenerating requires the venv (see `docs/VALIDATION.md`). If you cannot run it, **say so**
   rather than adjusting an expectation to match your output.
 
+**A NUMERIC TOLERANCE IS A RATCHET: it may tighten, never loosen.** Refusing to hand-edit a
+golden means nothing if the comparison around it can be widened instead, and widening is the
+quieter cheat because the diff looks like a rounding concession rather than a retracted claim.
+`docs/VALIDATION.md` records what each path currently achieves (logicle ~5e-17, hyperlog
+~3e-17, compensation <1e-6, gating **zero** mismatches over ~18k points). Those numbers are
+commitments.
+
+- **Never widen a tolerance to make a failing test pass.** A test that needs more room is
+  telling you the port changed, and the port is what to investigate.
+- If a widening is genuinely correct (a different algorithm with a different error profile, a
+  documented f32 path), it ships **with the oracle run that justifies it** and a comment naming
+  the error source. "Loosened to pass CI" is not a justification.
+- **An exact-match assertion never becomes approximate.** Gating geometry matches the oracle
+  exactly; a tolerance appearing there is a bug being hidden.
+- The same applies to a test that starts skipping, or an assertion count that drops. Both read
+  as green.
+
 **When the thing under test is a DATASET or a parameter space, the golden covers EVERY member,
 not a curated list.** A hand-picked list in a generator is the smell. If a transform has five
 parameter cases, the golden asserts all five; if the engine ships N gate shapes, the golden
@@ -462,6 +515,17 @@ This is the invariant the whole architecture exists to protect. It was prose in
 - **`density/histogram2d.ts` is the source of truth.** The WGSL compute pass mirrors it
   bin-for-bin, and a parity test asserts GPU bins equal CPU bins. If they disagree, the GPU is
   wrong.
+- **The colormap is the other CPU/GPU mirror, and it is the unguarded one.** The viridis and
+  inferno anchors in `packages/cytometry-gpu/src/colormap.ts` are deliberately duplicated into
+  `webgpu/shaders/density_render.wgsl` so both paths color identically. **Change one, change
+  the other in the same pass.** Nothing asserts they agree yet (`docs/RESEARCH.md` V-4), so
+  this one holds only because you hold it. Do not add a third copy.
+- **A fallback must be visible.** `loadWasmKernels` silently falls back to TS, and the renderer
+  silently falls back to Canvas2D. Both are correct designs (results are identical, §2.3), but
+  the **performance characteristics are not**, and a user staring at a slow app deserves to
+  know which path is live. `isCrossOriginIsolated()` and `detectWebGPU()` exist for this; a
+  silent degradation the user cannot see is a bug in the reporting, not a feature of the
+  fallback.
 - **`TsKernels` and `WasmKernels` must be identical.** `loadWasmKernels` falls back to TS when
   the `.wasm` is missing, so results must not depend on which one ran.
   `kernels.wasm.test.ts` asserts this and **skips when the artifact is not built**, which means
@@ -480,26 +544,34 @@ This is the invariant the whole architecture exists to protect. It was prose in
 
 ---
 
-## 4. Rendering, colormaps, and UI style
+## 4. Nothing leaves the machine
 
-- **The colormap anchors live in `packages/cytometry-gpu/src/colormap.ts` and are mirrored in
-  WGSL on purpose**, so CPU and GPU color identically. Change one, change the other in the same
-  pass, and keep the test that asserts they agree. Do not add a third copy.
-- **Do not add a charting library for the event cloud.** deck.gl, regl, Plotly, and Chart.js
-  are all WebGL/DOM-era and CPU-bound at this scale; `docs/PLOTS.md` records the decision and
-  the reasoning. D3 is used as a toolkit (`d3-contour`, `d3-scale`, `d3-axis`), never as the
-  renderer. Logicle-aware ticks are ours because no library places them correctly.
-- **`app-react` styles with inline `CSSProperties` objects. There is no CSS file, no CSS
-  framework, and no design-token system.** Match what is there: a style constant next to the
-  component that uses it. **Do not introduce Tailwind, CSS modules, styled-components, or a
-  theme system as a side effect of another change.** If the app needs one, that is its own
-  decision, made deliberately and written down, not smuggled in.
-- **Raw color values are acceptable** in canvas, WGSL, and colormap contexts, which is most of
-  this app. There is no token layer to violate.
-- **Never fail silently in the UI.** An input the app cannot process must SAY what is wrong,
-  why, and what to do instead. An empty plot, a dead button, or a no-op run is a bug, and "no
-  output" must never be how a user discovers their file was invalid (§10). The console panel is
-  a log, not an error channel.
+The app is local-first in the strongest sense: **it makes no network requests at all.** The
+only `fetch` anywhere in the app graph is `packages/cytometry-core/src/kernels/index.ts`
+loading the local `.wasm` artifact. There is no API, no CDN, no font host, no analytics, no
+telemetry, no error reporting, and no update check.
+
+**That is a property to defend, not a coincidence, and it is currently defended by nothing.**
+One convenience import ends it, silently, and no test would notice.
+
+- **FCS files carry patient data.** That is why `*.fcs` is gitignored (§7) and it is the same
+  reason the app must never transmit one. A single request with a filename in the query string
+  is a disclosure. Treat event data, channel names, marker names, file names, and gate
+  statistics as sensitive: **never log them to a remote sink, and never put them in a URL.**
+- **No new runtime dependency reaches the network.** Before adding any dependency, check what
+  it does at import time and on first use. `cytometry-core` and `fcs` have **zero runtime
+  dependencies** by design (§0), which is also what lets `bun test` run with no network.
+- **No CDN, ever, and not only for privacy.** COEP `require-corp` blocks any cross-origin asset
+  that does not send CORP, so a CDN import breaks `SharedArrayBuffer` and silently degrades the
+  event matrix to per-worker copies (§3). The privacy property and the performance property
+  protect each other; give up one and you lose both.
+- **If a feature genuinely needs the network** (fetching a public dataset from FlowRepository,
+  resolving spectra from FPbase, §1b), it is **opt-in, explicit, and visible**: the user asks
+  for it, the UI says what will be sent and to whom, and nothing is transmitted from the loaded
+  sample. Add it deliberately, document it in the owning doc, and say so in the reply. Do not
+  let it arrive as a side effect of another change.
+- **Adding the first outbound request is an architectural change**, not an implementation
+  detail. It belongs in `docs/DERISKING.md` and the changelog, with the reason.
 
 ---
 
@@ -518,6 +590,13 @@ This is the invariant the whole architecture exists to protect. It was prose in
   | Rust | `bun run test:wasm` (`cargo test`) | only when Rust source changed |
   | WASM parity | `bun run build:wasm` then `bun test` | when kernels changed: otherwise the parity test SKIPS |
 
+- **A SKIPPED TEST IS NOT A PASSING TEST, and a green summary hides the difference.** A default
+  `bun test` run reports 3 skips, and they are `kernels.wasm.test.ts`, the test that asserts
+  TS/WASM parity. It skips when the artifact is absent, which means **the one test whose
+  absence you cannot detect from behavior is the one that silently opts out.** If you touched a
+  kernel and did not run `bun run build:wasm` first, you verified nothing about parity. Read the
+  skip count, and when you report a run, report it (§2.2: a test that starts skipping reads as
+  green).
 - **There is NO linter and NO formatter in this repo.** No Biome, no ESLint, no Prettier, no
   editorconfig. Do not invent a lint gate, do not claim one ran, and do not add one as a side
   effect of another change. Formatting is by local convention: match the file you are in.
@@ -750,6 +829,35 @@ Three standing product rules. They define what "done" means for any capability:
   cannot use (too few events, wrong channel type, no time channel, non-finite values) is caught
   up front with the reason shown next to the control that chose it, never discovered by an empty
   table.
+- **Never fail silently.** An input the app cannot process must SAY what is wrong, why, and what
+  to do instead. An empty plot, a dead button, or a no-op run is a bug, and "no output" must
+  never be how a user discovers their file was invalid. **`ConsolePanel` is a log, not an error
+  channel**: a line scrolling past there does not count as telling anyone. This covers the
+  *recovered* case too, which is the one that gets skipped: `loadSample` returns `warnings` and
+  the app renders a **count**. A parser that quietly repaired six malformed keywords has told
+  the user nothing useful, because *which* ones fired is exactly what decides whether the
+  numbers downstream can be trusted (§10, a defensive parser is only honest if it reports).
+- **Every statistic states its definition.** "MFI" is the median in FlowJo and the geometric
+  mean elsewhere; "percent positive" depends entirely on where the negative gate came from; CV
+  is defined differently across instruments. A number shown without its definition cannot be
+  compared against the tool the user is migrating from, which is the first thing they will do
+  with it. Label it in the readout, not only in a doc.
+
+### UI style, as it actually is
+
+- **`app-react` styles with inline `CSSProperties` objects. There is no CSS file, no CSS
+  framework, and no design-token system.** Match what is there: a style constant next to the
+  component that uses it. **Do not introduce Tailwind, CSS modules, styled-components, or a
+  theme system as a side effect of another change.** If the app needs one, that is its own
+  decision, made deliberately and written down, not smuggled in.
+- **Raw color values are acceptable** in canvas, WGSL, and colormap contexts, which is most of
+  this app. There is no token layer to violate.
+- **Do not add a charting library for the event cloud.** deck.gl, regl, Plotly, and Chart.js
+  are all WebGL/DOM-era and CPU-bound at this scale; [`docs/PLOTS.md`](./docs/PLOTS.md) records
+  the decision and the reasoning, so reintroducing one needs an argument that beats what is
+  written there. D3 is used as a toolkit (`d3-contour`, `d3-scale`, `d3-axis`), never as the
+  renderer. Logicle-aware ticks are ours because no library places them correctly. Note that
+  any of these arriving from a CDN would also break cross-origin isolation (§4).
 
 ---
 
